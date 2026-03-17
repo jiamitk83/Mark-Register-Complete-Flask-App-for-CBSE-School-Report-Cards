@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - School Mark Register{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="page-header">
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">Welcome to School Mark Register - Manage your students and their academic performance</p>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="stats-card">
+                <div class="stats-icon primary">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stats-value">{{ total_students }}</div>
+                <div class="stats-label">Total Students</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card">
+                <div class="stats-icon success">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="stats-value">{{ total_subjects }}</div>
+                <div class="stats-label">Total Subjects</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card">
+                <div class="stats-icon warning">
+                    <i class="fas fa-pen"></i>
+                </div>
+                <div class="stats-value">{{ total_marks_entries }}</div>
+                <div class="stats-label">Marks Entries</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions & Recent Students -->
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-plus-circle me-2"></i>Quick Actions</span>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-3">
+                        <a href="/students" class="btn btn-primary text-start">
+                            <i class="fas fa-user-plus me-2"></i>Add New Student
+                        </a>
+                        <a href="/subjects" class="btn btn-success text-start">
+                            <i class="fas fa-book-medical me-2"></i>Add New Subject
+                        </a>
+                        <a href="/marks" class="btn btn-info text-start" style="background: linear-gradient(135deg, #06B6D4, #0891B2); border: none; color: white;">
+                            <i class="fas fa-pen-nib me-2"></i>Enter Marks
+                        </a>
+                        <a href="/results" class="btn btn-warning text-start" style="background: linear-gradient(135deg, #F59E0B, #D97706); border: none; color: white;">
+                            <i class="fas fa-chart-line me-2"></i>View Results
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-user-clock me-2"></i>Recent Students</span>
+                    <a href="/students" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_students %}
+                        {% for student in recent_students %}
+                            <div class="recent-student-card">
+                                <div class="d-flex align-items-center">
+                                    <div class="recent-student-avatar">
+{{ student.name.split(' ')[0][0].upper() ~ (student.name.split(' ')[1][0].upper() if student.name.split(' ') | length > 1 else student.name.split(' ')[0][1].upper()) }}
+                                    </div>
+                                    <div class="recent-student-info">
+                                        <div class="recent-student-name">{{ student.name }}</div>
+                                        <div class="recent-student-class">{{ student.class_name }} - ID: {{ student.student_id }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-user-graduate d-block mb-3" style="color: var(--gray-400);"></i>
+                            <p>No students added yet</p>
+                            <a href="/students" class="btn btn-primary btn-sm">Add First Student</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Subjects Overview -->
+    <div class="row g-4 mt-2">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-books me-2"></i>Subjects</span>
+                    <a href="/subjects" class="btn btn-sm btn-outline-primary">Manage Subjects</a>
+                </div>
+                <div class="card-body">
+                    {% if subjects %}
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for subject in subjects %}
+                                <span class="badge" style="background: linear-gradient(135deg, #4F46E5, #7C3AED); padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                    <i class="fas fa-bookmark me-1"></i>{{ subject.name }}
+                                </span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-state py-4">
+                            <i class="fas fa-book-open d-block mb-3" style="color: var(--gray-400); font-size: 2rem;"></i>
+                            <p>No subjects added yet</p>
+                            <a href="/subjects" class="btn btn-primary btn-sm">Add First Subject</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

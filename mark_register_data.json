@@ -1,0 +1,280 @@
+{
+    "students": {
+        "S004": {
+            "name": "AASHI YADAV",
+            "class": "6"
+        },
+        "S005": {
+            "name": "ASRA FIRDAUS",
+            "class": "6"
+        },
+        "S006": {
+            "name": "MISHA",
+            "class": "6"
+        },
+        "S007": {
+            "name": "MD. ABBAN",
+            "class": "6"
+        },
+        "S008": {
+            "name": "HAMZA",
+            "class": "6"
+        },
+        "S009": {
+            "name": "HASHIR NOOR",
+            "class": "6"
+        },
+        "S010": {
+            "name": "MOHD. YUSUF",
+            "class": "6"
+        },
+        "S011": {
+            "name": "NEELANSHI PRATAP SINGH",
+            "class": "6"
+        },
+        "S012": {
+            "name": "NIPUN",
+            "class": "6"
+        },
+        "S013": {
+            "name": "RAHMA NAEEM",
+            "class": "6"
+        },
+        "S014": {
+            "name": "REYANSH JHA CHAUDHRY",
+            "class": "6"
+        },
+        "S015": {
+            "name": "RUSHANK SRIVASTAVA",
+            "class": "6"
+        },
+        "S016": {
+            "name": "SAUMYA DWIVEDI",
+            "class": "6"
+        },
+        "S017": {
+            "name": "SARIYA YAKUB",
+            "class": "6"
+        },
+        "S018": {
+            "name": "VIRAT MISHRA",
+            "class": "6"
+        },
+        "S019": {
+            "name": "YASH NISHAD",
+            "class": "6"
+        },
+        "S020": {
+            "name": "ZAKIYA",
+            "class": "6"
+        },
+        "S021": {
+            "name": "AFFAN AHMAD",
+            "class": "7"
+        },
+        "S022": {
+            "name": "ANANSHI ROHATGI",
+            "class": "7"
+        },
+        "S023": {
+            "name": "ARUSHI",
+            "class": "7"
+        },
+        "S024": {
+            "name": "HASAN QADRI",
+            "class": "7"
+        },
+        "S025": {
+            "name": "MARYAM SIDDIQUI",
+            "class": "7"
+        },
+        "S026": {
+            "name": "NABIYA ZAFAR",
+            "class": "7"
+        },
+        "S027": {
+            "name": "RAYYAN ARSALAN",
+            "class": "7"
+        },
+        "S028": {
+            "name": "SHAURYA DWIVEDI",
+            "class": "7"
+        },
+        "S029": {
+            "name": "ZAKI AHMED",
+            "class": "7"
+        },
+        "S030": {
+            "name": "SHAYYAN HASHMI",
+            "class": "7"
+        }
+    },
+    "subjects": [
+        "ENGLISH",
+        "MATHS",
+        "HINDI",
+        "SST",
+        "COMPUTER THEORY",
+        "COMPUTER PRACTICAL",
+        "GK"
+    ],
+    "marks": {
+        "S004": {
+            "Term 1": {
+                "hindi": 20.0,
+                "english": 50.0,
+                "maths": 30.0,
+                "science": 90.0,
+                "sst": 50.0,
+                "computer": 55.0,
+                "gk": 20.0,
+                "art and craft": 20.0,
+                "HINDI THEORY": 0
+            }
+        },
+        "S005": {
+            "Term 1": {
+                "english": 20.0
+            }
+        },
+        "S006": {
+            "Term 1": {
+                "english": 30.0
+            }
+        },
+        "S007": {
+            "Term 1": {
+                "english": 25.0
+            }
+        },
+        "S008": {
+            "Term 1": {
+                "english": 65.0
+            }
+        },
+        "S009": {
+            "Term 1": {
+                "english": 25.0
+            }
+        },
+        "S010": {
+            "Term 1": {
+                "english": 25.0
+            }
+        },
+        "S011": {
+            "Term 1": {
+                "english": 32.0
+            }
+        },
+        "S012": {
+            "Term 1": {
+                "english": 65.0
+            }
+        },
+        "S013": {
+            "Term 1": {
+                "english": 12.0
+            }
+        },
+        "S014": {
+            "Term 1": {
+                "english": 45.0
+            }
+        },
+        "S015": {
+            "Term 1": {
+                "english": 75.0
+            }
+        },
+        "S016": {
+            "Term 1": {
+                "english": 45.0
+            }
+        },
+        "S017": {
+            "Term 1": {
+                "english": 65.0
+            }
+        },
+        "S018": {
+            "Term 1": {
+                "english": 75.0
+            }
+        },
+        "S019": {
+            "Term 1": {
+                "english": 45.0
+            }
+        },
+        "S021": {
+            "Term 3": {
+                "ENGLISH": 9.0
+            }
+        },
+        "S022": {
+            "Term 3": {
+                "ENGLISH": 18.5
+            }
+        },
+        "S023": {
+            "Term 3": {
+                "ENGLISH": 16.5
+            }
+        },
+        "S024": {
+            "Term 3": {
+                "ENGLISH": 8.0
+            }
+        },
+        "S025": {
+            "Term 3": {
+                "ENGLISH": 23.0
+            }
+        },
+        "S026": {
+            "Term 3": {
+                "ENGLISH": 17.0
+            }
+        },
+        "S027": {
+            "Term 3": {
+                "ENGLISH": 12.0
+            }
+        },
+        "S028": {
+            "Term 3": {
+                "ENGLISH": 12.5
+            }
+        },
+        "S029": {
+            "Term 3": {
+                "ENGLISH": 14.0
+            }
+        }
+    },
+    "sessions": [
+        "Term 1",
+        "Term 2",
+        "Term 3",
+        "Term 4"
+    ],
+    "settings": {
+        "passing_marks": 35,
+        "grade_boundaries": {
+            "A+": 90,
+            "A": 80,
+            "B+": 70,
+            "B": 60,
+            "C": 50,
+            "D": 40,
+            "F": 0
+        },
+        "exam_max_marks": {
+            "hindi_Term 1": 100,
+            "english_Term 1": 100,
+            "english_Term 3": 25
+        },
+        "dark_mode": true
+    }
+}

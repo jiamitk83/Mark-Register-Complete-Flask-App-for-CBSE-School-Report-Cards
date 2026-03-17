@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+
+{% block title %}Marks Entry - School Mark Register{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="page-header">
+        <h1 class="page-title">Marks Entry</h1>
+        <p class="page-subtitle">Enter and manage student marks</p>
+    </div>
+    
+    <!-- Cascade Filter for Bulk Marks Entry -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between">
+            <span><i class="fas fa-filter me-2"></i>Cascade Filter & Bulk Entry</span>
+            <button class="btn btn-sm btn-outline-primary" onclick="loadBulkMarksTable()">
+                <i class="fas fa-magic me-2"></i>Load Table
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label for="termSelect" class="form-label">Term</label>
+                    <select class="form-select" id="termSelect">
+                        <option value="">All Terms</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="gradeSelect" class="form-label">Grade</label>
+                    <select class="form-select" id="gradeSelect" disabled>
+                        <option value="">All Grades</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="sectionSelect" class="form-label">Section</label>
+                    <select class="form-select" id="sectionSelect" disabled>
+                        <option value="">All Sections</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="subjectSelectBulk" class="form-label">Subject</label>
+                    <select class="form-select" id="subjectSelectBulk" disabled>
+                        <option value="">Choose Subject...</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" onclick="loadBulkMarksTable()">
+                        <i class="fas fa-table me-2"></i>Load Students Marks
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+                <div class="col-md-3">
+                    <label for="examSelect" class="form-label">Exam Type</label>
+                    <select class="form-select" id="examSelect">
+                        <option value="TERM1">TERM 1</option>
+                        <option value="TERM2">TERM 2</option>
+                        <option value="MIDTERM">Mid Term</option>
+                        <option value="FINAL">Final</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="subjectSelect" class="form-label">Subject</label>
+                    <select class="form-select" id="subjectSelect" required>
+                        <option value="">Choose subject...</option>
+                        {% for subject in subjects %}
+                            <option value="{{ subject.id }}" data-max-term1="{{ subject.max_term1|default(50) }}" data-max-term2="{{ subject.max_term2|default(50) }}" data-max-midterm="{{ subject.max_midterm|default(70) }}" data-max-final="{{ subject.max_final|default(100) }}">{{ subject.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="marksInput" class="form-label">Marks</label>
+                    <input type="number" class="form-control" id="marksInput" min="0" step="0.5" placeholder="Enter marks" required>
+                    <small id="maxMarksLabel" class="form-text text-muted">Max Marks: --</small>
+                </div>
+                <div class="col-md-1">
+                    <button type="submit" class="btn btn-primary w-100" title="Save Marks">
+                        <i class="fas fa-save"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Bulk Marks Table -->
+    <div id="bulkMarksTableContainer" class="card mb-4" style="display: none;">
+        <div class="card-header d-flex justify-content-between">
+            <span><i class="fas fa-table me-2"></i>Marks Entry Table</span>
+            <button class="btn btn-success btn-sm" onclick="saveBulkMarks()">
+                <i class="fas fa-save me-2"></i>Bulk Save All
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="bulkMarksTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Student</th>
+                            <th>TERM1</th>
+                            <th>TERM2</th>
+                            <th>MIDTERM</th>
+                            <th>FINAL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dynamically populated -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Existing Marks -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-list me-2"></i>Existing Marks
+        </div>
+        <div class="card-body">
+            {% if marks %}
+                <div class="table-responsive">
+                    <table class="table table-hover" id="marksTable">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Subject</th>
+                                <th>Marks</th>
+                                <th>Grade</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mark in marks %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="recent-student-avatar me-2" style="width: 32px; height: 32px; font-size: 0.75rem;">
+{{ (mark.student_name.split(' ') | first | first | upper) if mark.student_name.split(' ') | length > 0 else '' }}
+                                            </div>
+<span style="text-transform: uppercase;">{{ mark.student_name }}</span>
+                                        </div>
+                                    </td>
+                                    <td>{{ mark.subject_name }}</td>
+                                    <td><strong>{{ mark.marks }}</strong></td>
+                                    <td>
+                                        {% set grade = 'F' %}
+                                        {% if mark.marks >= 90 %}
+                                            {% set grade = 'A+' %}
+                                        {% elif mark.marks >= 80 %}
+                                            {% set grade = 'A' %}
+                                        {% elif mark.marks >= 70 %}
+                                            {% set grade = 'B+' %}
+                                        {% elif mark.marks >= 60 %}
+                                            {% set grade = 'B' %}
+                                        {% elif mark.marks >= 50 %}
+                                            {% set grade = 'C' %}
+                                        {% elif mark.marks >= 40 %}
+                                            {% set grade = 'D' %}
+                                        {% endif %}
+                                        <span class="badge badge-grade {{ 'badge-grade-' + grade.lower().replace('+', '-plus') }}">
+                                            {{ grade }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-clipboard-list"></i>
+                    <h5>No Marks Yet</h5>
+                    <p>Enter marks using the form above</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Cascade Filter Logic
+let currentStudents = [];
+let currentSubjectId = null;
+
+// Initialize cascade
+async function initCascade() {
+    // Load terms
+    const terms = await fetch('/api/filters/terms').then(r => r.json());
+    const termSelect = document.getElementById('termSelect');
+    terms.forEach(term => {
+        const option = document.createElement('option');
+        option.value = term;
+        option.textContent = term;
+        termSelect.appendChild(option);
+    });
+    termSelect.value = '2024-25'; // Default
+    onTermChange();
+}
+
+document.getElementById('termSelect').addEventListener('change', onTermChange);
+document.getElementById('gradeSelect').addEventListener('change', onGradeChange);
+document.getElementById('sectionSelect').addEventListener('change', onSectionChange);
+document.getElementById('subjectSelectBulk').addEventListener('change', onSubjectChange);
+
+async function onTermChange() {
+    const term = document.getElementById('termSelect').value;
+    const gradeSelect = document.getElementById('gradeSelect');
+    gradeSelect.innerHTML = '<option value="">All Grades</option>';
+    gradeSelect.disabled = !term;
+    
+    if (term) {
+        const grades = await fetch(`/api/filters/grades?term=${term}`).then(r => r.json());
+        grades.forEach(grade => {
+            const option = document.createElement('option');
+            option.value = grade;
+            option.textContent = grade;
+            gradeSelect.appendChild(option);
+        });
+    }
+    onGradeChange();
+}
+
+async function onGradeChange() {
+    const term = document.getElementById('termSelect').value;
+    const grade = document.getElementById('gradeSelect').value;
+    const sectionSelect = document.getElementById('sectionSelect');
+    sectionSelect.innerHTML = '<option value="">All Sections</option>';
+    sectionSelect.disabled = !(term && grade);
+    
+    if (term && grade) {
+        const sections = await fetch(`/api/filters/sections?term=${term}&grade=${grade}`).then(r => r.json());
+        sections.forEach(section => {
+            const option = document.createElement('option');
+            option.value = section;
+            option.textContent = section;
+            sectionSelect.appendChild(option);
+        });
+    }
+    onSectionChange();
+}
+
+async function onSectionChange() {
+    // Load subjects (all for now)
+    const subjectsRes = await fetch('/api/subjects');
+    const subjects = await subjectsRes.json();
+    const subjectSelect = document.getElementById('subjectSelectBulk');
+    subjectSelect.innerHTML = '<option value="">Choose Subject...</option>';
+    subjectSelect.disabled = false;
+    subjects.forEach(subject => {
+        const option = document.createElement('option');
+        option.value = subject.id;
+        option.textContent = subject.name;
+        subjectSelect.appendChild(option);
+    });
+}
+
+function onSubjectChange() {
+    // Ready for load
+}
+
+async function loadBulkMarksTable() {
+    const term = document.getElementById('termSelect').value;
+    const grade = document.getElementById('gradeSelect').value;
+    const section = document.getElementById('sectionSelect').value;
+    const subjectId = document.getElementById('subjectSelectBulk').value;
+    
+    if (!subjectId) {
+        showToast('Error', 'Please select a subject', 'error');
+        return;
+    }
+    
+    showToast('Loading', 'Fetching students and marks...', 'info');
+    
+    // Get students
+    const studentsRes = await fetch(`/api/students/group?term=${term}&grade=${grade}&section=${section}`);
+    currentStudents = await studentsRes.json();
+    
+    if (currentStudents.length === 0) {
+        showToast('No Data', 'No students found for this selection', 'warning');
+        return;
+    }
+    
+    currentSubjectId = parseInt(subjectId);
+    
+    // Load table
+    const tbody = document.querySelector('#bulkMarksTable tbody');
+    tbody.innerHTML = '';
+    
+    currentStudents.forEach(student => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>
+                <div class="d-flex align-items-center">
+                    <div class="recent-student-avatar me-2">
+                        ${student.name.split(' ')[0][0].toUpperCase()}
+                    </div>
+                    <div>
+                        <strong>${student.name}</strong><br>
+                        <small class="text-muted">${student.class_name || `${student.grade}-${student.section}`}</small>
+                    </div>
+                </div>
+                <input type="hidden" value="${student.student_id}" data-student-id>
+            </td>
+            <td><input type="number" class="form-control marks-input" data-exam="TERM1" min="0" step="0.5"></td>
+            <td><input type="number" class="form-control marks-input" data-exam="TERM2" min="0" step="0.5"></td>
+            <td><input type="number" class="form-control marks-input" data-exam="MIDTERM" min="0" step="0.5"></td>
+            <td><input type="number" class="form-control marks-input" data-exam="FINAL" min="0" step="0.5"></td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    document.getElementById('bulkMarksTableContainer').style.display = 'block';
+    showToast('Success', `${currentStudents.length} students loaded for bulk entry`, 'success');
+}
+
+// Bulk Save
+async function saveBulkMarks() {
+    const rows = document.querySelectorAll('#bulkMarksTable tbody tr');
+    const marksData = {};
+    
+    rows.forEach(row => {
+        const studentId = row.querySelector('[data-student-id]').value;
+        const inputs = row.querySelectorAll('.marks-input');
+        const studentMarks = {};
+        inputs.forEach(input => {
+            const exam = input.dataset.exam;
+            const value = parseFloat(input.value) || 0;
+            studentMarks[exam] = value;
+        });
+        marksData[studentId] = studentMarks;
+    });
+    
+    try {
+        const response = await fetch('/api/marks/bulk-group', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                term: document.getElementById('termSelect').value,
+                grade: document.getElementById('gradeSelect').value,
+                section: document.getElementById('sectionSelect').value,
+                subject_id: currentSubjectId,
+                marks_data: marksData
+            })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Success', result.message, 'success');
+            document.getElementById('bulkMarksTableContainer').style.display = 'none';
+        } else {
+            showToast('Error', result.message, 'error');
+        }
+    } catch (error) {
+        showToast('Error', 'Save failed', 'error');
+    }
+}
+
+document.getElementById('marksForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const studentId = document.getElementById('studentSelect').value;
+    const examType = document.getElementById('examSelect').value;
+    const subjectId = document.getElementById('subjectSelect').value;
+    const marks = document.getElementById('marksInput').value;
+    
+    if (!studentId || !subjectId || !marks || !examType) {
+        showToast('Error', 'Please fill all fields', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/marks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                student_id: studentId,
+                subject_id: parseInt(subjectId),
+                marks: parseFloat(marks),
+                exam_type: examType
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Success', result.message, 'success');
+            window.location.href = window.location.href;  // Hard refresh
+        } else {
+            showToast('Error', result.message, 'error');
+        }
+    } catch (error) {
+        showToast('Error', 'Failed to save marks', 'error');
+    }
+});
+
+// Dynamic max marks display
+document.getElementById('examSelect').addEventListener('change', updateMaxMarks);
+document.getElementById('subjectSelect').addEventListener('change', updateMaxMarks);
+
+function updateMaxMarks() {
+    const examSelect = document.getElementById('examSelect');
+    const subjectSelect = document.getElementById('subjectSelect');
+    const maxMarksLabel = document.getElementById('maxMarksLabel');
+    const marksInput = document.getElementById('marksInput');
+    
+    if (examSelect.value && subjectSelect.value) {
+        const option = subjectSelect.selectedOptions[0];
+        const maxMarks = option.dataset[`max${examSelect.value.toLowerCase()}`] || 100;
+        maxMarksLabel.textContent = `Max Marks: ${maxMarks}`;
+        marksInput.max = maxMarks;
+        marksInput.value = '';
+    } else {
+        maxMarksLabel.textContent = 'Max Marks: --';
+        marksInput.max = 100;
+    }
+}
+</script>
+{% endblock %}

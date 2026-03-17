@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - School Mark Register{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="page-header">
+        <h1 class="page-title">Settings</h1>
+        <p class="page-subtitle">Configure your mark register preferences</p>
+    </div>
+    
+    <div class="row g-4">
+        <!-- Grade Boundaries -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-graduation-cap me-2"></i>Grade Boundaries
+                </div>
+                <div class="card-body">
+                    <form id="gradeSettingsForm">
+                        <div class="mb-3">
+                            <label class="form-label">Grade A+ (Minimum %)</label>
+                            <input type="number" class="form-control" id="grade_A+" value="{{ settings.get('grade_A+', '90') }}" min="0" max="100">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Grade A (Minimum %)</label>
+                            <input type="number" class="form-control" id="grade_A" value="{{ settings.get('grade_A', '80') }}" min="0" max="100">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Grade B+ (Minimum %)</label>
+                            <input type="number" class="form-control" id="grade_B+" value="{{ settings.get('grade_B+', '70') }}" min="0" max="100">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Grade B (Minimum %)</label>
+                            <input type="number" class="form-control" id="grade_B" value="{{ settings.get('grade_B', '60') }}" min="0" max="100">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Grade C (Minimum %)</label>
+                            <input type="number" class="form-control" id="grade_C" value="{{ settings.get('grade_C', '50') }}" min="0" max="100">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Grade D (Minimum %)</label>
+                            <input type="number" class="form-control" id="grade_D" value="{{ settings.get('grade_D', '40') }}" min="0" max="100">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Grade F (Fail - Maximum %)</label>
+                            <input type="number" class="form-control" id="grade_F" value="{{ settings.get('grade_F', '0') }}" min="0" max="100" readonly>
+                        </div>
+                        
+                        <button type="button" class="btn btn-primary" onclick="saveGradeSettings()">
+                            <i class="fas fa-save me-2"></i>Save Grade Settings
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Passing Marks -->
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-check-circle me-2"></i>Passing Marks
+                </div>
+                <div class="card-body">
+                    <form id="passingMarksForm">
+                        <div class="mb-3">
+                            <label class="form-label">Minimum Passing Marks</label>
+                            <input type="number" class="form-control" id="passing_marks" value="{{ settings.get('passing_marks', '35') }}" min="0" max="100">
+                            <div class="form-text">Students scoring below this will receive an F grade</div>
+                        </div>
+                        <button type="button" class="btn btn-success" onclick="savePassingMarks()">
+                            <i class="fas fa-save me-2"></i>Save Passing Marks
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Exam Max Marks Editor -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-table me-2"></i>📊 Exam Max Marks Editor
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <button class="btn btn-primary mb-3" onclick="loadMaxMarksMatrix()">
+                            <i class="fas fa-sync me-2"></i>Load Matrix
+                        </button>
+                    </div>
+                    <div id="maxMarksMatrix" class="table-responsive">
+                        <p class="text-muted mb-3"><small><strong>Instructions:</strong> Click "Load Matrix" → Edit any cell → Double-click to edit → Save All</small></p>
+                        <table class="table table-bordered table-sm" id="maxMarksTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 200px;">Subject</th>
+                                    <th style="width: 100px;" class="text-center">TERM1</th>
+                                    <th style="width: 100px;" class="text-center">TERM2</th>
+                                    <th style="width: 100px;" class="text-center">Midterm</th>
+                                    <th style="width: 100px;" class="text-center">Final</th>
+                                </tr>
+                            </thead>
+                            <tbody id="maxMarksTbody">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                        <button class="btn btn-success mt-2" onclick="saveAllMaxMarks()">
+                            <i class="fas fa-save me-2"></i>💾 Save All Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Exam Max Marks Modal (for editing) -->
+<div class="modal fade" id="maxMarksModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Edit Max Marks
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label>Exam Type</label>
+                        <input type="text" class="form-control" id="editExamType" readonly>
+                    </div>
+                    <div class="col-6">
+                        <label>Subject</label>
+                        <input type="text" class="form-control" id="editSubjectName" readonly>
+                    </div>
+                    <div class="col-12">
+                        <label>Max Marks</label>
+                        <input type="number" class="form-control" id="editMaxMarks" min="1" max="500">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="saveMaxMarks()">
+                    <i class="fas fa-save me-2"></i>Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function saveGradeSettings() {
+    const settings = {
+        'grade_A+': document.getElementById('grade_A+').value,
+        'grade_A': document.getElementById('grade_A').value,
+        'grade_B+': document.getElementById('grade_B+').value,
+        'grade_B': document.getElementById('grade_B').value,
+        'grade_C': document.getElementById('grade_C').value,
+        'grade_D': document.getElementById('grade_D').value
+    };
+    
+    try {
+        const response = await fetch('/api/settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(settings)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Success', 'Grade settings saved successfully!', 'success');
+        } else {
+            showToast('Error', result.message, 'error');
+        }
+    } catch (error) {
+        showToast('Error', 'Failed to save settings', 'error');
+    }
+}
+
+async function savePassingMarks() {
+    const passingMarks = {
+        'passing_marks': document.getElementById('passing_marks').value
+    };
+    
+    try {
+        const response = await fetch('/api/settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(passingMarks)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Success', 'Passing marks saved successfully!', 'success');
+        } else {
+            showToast('Error', result.message, 'error');
+        }
+    } catch (error) {
+        showToast('Error', 'Failed to save settings', 'error');
+    }
+}
+
+// ===== MAX MARKS MATRIX =====
+let maxMarksMatrix = [];
+
+async function loadMaxMarksMatrix() {
+    try {
+        const response = await fetch('/api/maxmarks');
+        const data = await response.json();
+        
+        if (data.matrix) {
+            maxMarksMatrix = data.matrix;
+            renderMaxMarksTable();
+            showToast('Success', 'Matrix loaded!', 'success');
+        }
+    } catch (error) {
+        showToast('Error', 'Failed to load matrix', 'error');
+    }
+}
+
+function renderMaxMarksTable() {
+    const tbody = document.getElementById('maxMarksTbody');
+    tbody.innerHTML = '';
+    
+    maxMarksMatrix.forEach((subject, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td style="font-weight: 600;">${subject.name}</td>
+            <td class="text-center" onclick="editMaxMarks('${subject.TERM1_exam}', '${subject.TERM1_subject}', ${subject.TERM1 || 50})">${subject.TERM1 || 50}</td>
+            <td class="text-center" onclick="editMaxMarks('${subject.TERM2_exam}', '${subject.TERM2_subject}', ${subject.TERM2 || 50})">${subject.TERM2 || 50}</td>
+            <td class="text-center" onclick="editMaxMarks('${subject.MIDTERM_exam}', '${subject.MIDTERM_subject}', ${subject.MIDTERM || 70})">${subject.MIDTERM || 70}</td>
+            <td class="text-center" onclick="editMaxMarks('${subject.FINAL_exam}', '${subject.FINAL_subject}', ${subject.FINAL || 100})">${subject.FINAL || 100}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function editMaxMarks(examType, subjectId, currentValue) {
+    document.getElementById('editExamType').value = examType;
+    document.getElementById('editSubjectName').dataset.subjectId = subjectId;
+    document.getElementById('editMaxMarks').value = currentValue;
+    
+    const modal = new bootstrap.Modal(document.getElementById('maxMarksModal'));
+    modal.show();
+}
+
+async function saveMaxMarks() {
+    const examType = document.getElementById('editExamType').value;
+    const subjectId = document.getElementById('editSubjectName').dataset.subjectId;
+    const maxMarks = parseInt(document.getElementById('editMaxMarks').value);
+    
+    if (!examType || !subjectId || isNaN(maxMarks)) {
+        showToast('Error', 'Invalid data', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/maxmarks', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                matrix: [{
+                    exam_type: examType,
+                    subject_id: parseInt(subjectId),
+                    max_marks: maxMarks
+                }]
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Success', 'Max marks saved!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('maxMarksModal')).hide();
+            loadMaxMarksMatrix();  // Reload
+        }
+    } catch (error) {
+        showToast('Error', 'Save failed', 'error');
+    }
+}
+
+async function saveAllMaxMarks() {
+    try {
+        const response = await fetch('/api/maxmarks', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({matrix: maxMarksMatrix})
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Success', 'All max marks saved!', 'success');
+        }
+    } catch (error) {
+        showToast('Error', 'Batch save failed', 'error');
+    }
+}
+
+// Load on page load
+document.addEventListener('DOMContentLoaded', loadMaxMarksMatrix);
+</script>
+{% endblock %}
