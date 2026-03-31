@@ -1,196 +1,118 @@
 {% extends "base.html" %}
 
-{% block title %}Results - School Mark Register{% endblock %}
+{% block title %}All Results - School Report Card{% endblock %}
 
 {% block content %}
 <div class="fade-in">
-    <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
-        <div>
-            <h1 class="page-title">Results</h1>
-            <p class="page-subtitle">View student results and performance</p>
-        </div>
-        <button class="btn btn-warning" style="background: linear-gradient(135deg, #F59E0B, #D97706); border: none; color: white;" onclick="window.print()">
-            <i class="fas fa-print me-2"></i>Print Results
-        </button>
+    <div class="page-header">
+        <h1><i class="fas fa-chart-bar me-3"></i>All Results</h1>
+        <p class="mb-0">View calculated results for all students</p>
     </div>
-    
-    {% if results %}
-        <!-- Results Summary Cards -->
-        <div class="row g-4 mb-4">
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="stats-icon primary">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="stats-value">{{ results|length }}</div>
-                    <div class="stats-label">Students Assessed</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                {% set pass_count = results|selectattr('grade', 'ne', 'F')|list|length %}
-                <div class="stats-card">
-                    <div class="stats-icon success">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <div class="stats-value">{{ pass_count }}</div>
-                    <div class="stats-label">Passed</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                {% set fail_count = results|selectattr('grade', 'eq', 'F')|list|length %}
-                <div class="stats-card">
-                    <div class="stats-icon danger">
-                        <i class="fas fa-times-circle"></i>
-                    </div>
-                    <div class="stats-value">{{ fail_count }}</div>
-                    <div class="stats-label">Failed</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                {% if results %}
-                    {% set total_pct = results|map(attribute='percentage')|sum / results|length %}
-                    <div class="stats-card">
-                        <div class="stats-icon info">
-                            <i class="fas fa-percentage"></i>
+
+    <!-- Actions -->
+    <div class="row mb-4 no-print">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <a href="{{ url_for('class_results', class_name=class_name, section=section) }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-users me-2"></i>View Class Results
+                            </a>
                         </div>
-                        <div class="stats-value">{{ "%.1f"|format(total_pct) }}%</div>
-                        <div class="stats-label">Class Average</div>
+                        <div class="col-md-4">
+                            <a href="{{ url_for('export_excel') }}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-file-excel me-2"></i>Export to Excel
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{{ url_for('search') }}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-search me-2"></i>Search Student
+                            </a>
+                        </div>
                     </div>
-                {% endif %}
-            </div>
-        </div>
-        
-        <!-- Results Table -->
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-chart-bar me-2"></i>Student Results
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover" id="resultsTable">
-                        <thead>
-                            <tr>
-                                <th>Student</th>
-                                {% for subject in subjects %}
-                                    <th>{{ subject.name }}</th>
-                                {% endfor %}
-                                <th>Total</th>
-                                <th>Average</th>
-                                <th>%</th>
-                                <th>Grade</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for result in results %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="recent-student-avatar me-2" style="width: 32px; height: 32px; font-size: 0.75rem;">
-{{ (result.name.split(' ') | first | first | upper) if result.name.split(' ') | length > 0 else '' }}
-                                            </div>
-                                            <div>
-                                                <div style="font-weight: 600; text-transform: uppercase;">{{ result.name }}</div>
-                                                <small class="text-muted" style="text-transform: uppercase;">{{ result.class_name }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    {% for subject in subjects %}
-                                        <td>
-                                            {% if subject.name in result.marks %}
-                                                {{ result.marks[subject.name] }}
-                                            {% else %}
-                                                <span class="text-muted">-</span>
-                                            {% endif %}
-                                        </td>
-                                    {% endfor %}
-                                    <td><strong>{{ result.total }}</strong></td>
-                                    <td>{{ result.average }}</td>
-                                    <td>{{ result.percentage }}%</td>
-                                    <td>
-                                        <span class="badge badge-grade {{ 'badge-grade-' + result.grade.lower().replace('+', '-plus') }}">
-                                            {{ result.grade }}
-                                        </span>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
                 </div>
             </div>
         </div>
-        
-        <!-- Grade Distribution -->
-        <div class="row g-4 mt-2">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <i class="fas fa-chart-pie me-2"></i>Grade Distribution
-                    </div>
-                    <div class="card-body">
-                        {% set grades = {'A+': 0, 'A': 0, 'B+': 0, 'B': 0, 'C': 0, 'D': 0, 'F': 0} %}
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if results %}
+            <div class="table-responsive">
+                <table class="table table-hover" id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>Roll No.</th>
+                            <th>Admission No.</th>
+                            <th>Name</th>
+                            <th>Class</th>
+                            <th>Section</th>
+                            <th>Grand Total</th>
+                            <th>Percentage</th>
+                            <th>Grade</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                         {% for result in results %}
-                            {% set _ = grades.update({result.grade: grades.get(result.grade, 0) + 1}) %}
-                        {% endfor %}
-                        
-                        <div class="d-flex flex-wrap gap-3">
-                            {% for grade, count in grades.items() %}
-                                {% if count > 0 %}
-                                    <div class="text-center p-3" style="background: var(--gray-50); border-radius: var(--radius); min-width: 80px;">
-                                        <div class="badge badge-grade {{ 'badge-grade-' + grade.lower().replace('+', '-plus') }} mb-2" style="font-size: 1rem; padding: 0.5rem 1rem;">
-                                            {{ grade }}
-                                        </div>
-                                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--dark);">{{ count }}</div>
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <i class="fas fa-star me-2"></i>Top Performers
-                    </div>
-                    <div class="card-body">
-                        {% set top_students = (results|sort(attribute='percentage', reverse=true))[:5] %}
-                        {% for student in top_students %}
-                            <div class="d-flex align-items-center justify-content-between p-2" style="border-bottom: 1px solid var(--gray-100);">
+                        <tr>
+                            <td>{{ result.student.roll_no or '-' }}</td>
+                            <td><strong>{{ result.student.admission_no }}</strong></td>
+                            <td>
                                 <div class="d-flex align-items-center">
-                                    <span class="me-3" style="font-weight: 700; color: var(--gray-400);">
-                                        {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}{% endif %}
-                                    </span>
-                                    <div>
-                                        <div style="font-weight: 600;">{{ student.name }}</div>
-                                        <small class="text-muted">{{ student.class_name }}</small>
-                                    </div>
+                                    <div class="avatar me-2">{{ (result.student.name[:1] if result.student.name else '?')|upper }}</div>
+                                    {{ result.student.name or 'Unknown' }}
                                 </div>
-                                <div class="text-end">
-                                    <div style="font-weight: 700;">{{ student.percentage }}%</div>
-                                    <span class="badge badge-grade {{ 'badge-grade-' + student.grade.lower().replace('+', '-plus') }}">{{ student.grade }}</span>
-                                </div>
-                            </div>
+                            </td>
+                            <td>Class {{ result.student.class_name }}</td>
+                            <td>{{ result.student.section }}</td>
+                            <td><strong>{{ result.grand_total }}</strong></td>
+                            <td>{{ result.percentage }}%</td>
+                            <td>
+                                <span class="badge grade-badge grade-{{ result.grade.lower() }}">
+                                    {{ result.grade }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('result_detail', admission_no=result.student.admission_no) }}" class="btn btn-sm btn-primary" title="View Report Card">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <a href="{{ url_for('result_detail', admission_no=result.student.admission_no) }}?print=true" class="btn btn-sm btn-success" title="Print" target="_blank">
+                                    <i class="fas fa-print"></i>
+                                </a>
+                            </td>
+                        </tr>
                         {% endfor %}
-                    </div>
-                </div>
+                    </tbody>
+                </table>
             </div>
-        </div>
-    {% else %}
-        <div class="card">
-            <div class="card-body">
-                <div class="empty-state">
-                    <i class="fas fa-chart-line"></i>
-                    <h5>No Results Yet</h5>
-                    <p>Add students, subjects, and enter marks to generate results</p>
-                    <div class="d-flex gap-2 justify-content-center">
-                        <a href="/students" class="btn btn-primary">Add Students</a>
-                        <a href="/subjects" class="btn btn-success">Add Subjects</a>
-                        <a href="/marks" class="btn btn-info" style="background: linear-gradient(135deg, #06B6D4, #0891B2); border: none; color: white;">Enter Marks</a>
-                    </div>
-                </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
+                <h4>No Results Found</h4>
+                <p class="text-muted">Enter marks for students to see their results</p>
+                <a href="{{ url_for('enter_marks') }}" class="btn btn-primary">
+                    <i class="fas fa-pen me-2"></i>Enter Marks
+                </a>
             </div>
+            {% endif %}
         </div>
-    {% endif %}
+    </div>
 </div>
+
+<style>
+.avatar {
+    width: 35px;
+    height: 35px;
+    background: linear-gradient(135deg, #3498db, #2c3e50);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+</style>
 {% endblock %}

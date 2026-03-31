@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+
+{% block title %}Report Card - {{ student.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.report-card {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: var(--card-bg);
+    border: 2px solid var(--primary-color);
+    color: var(--text-color);
+}
+
+.report-header {
+    background: var(--navbar-bg);
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+.school-name {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.report-title {
+    font-size: 1.2rem;
+    margin-bottom: 0;
+}
+
+.student-info {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: var(--light-bg);
+    border-bottom: 2px solid var(--primary-color);
+    color: var(--text-color);
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: uppercase;
+}
+
+.info-value {
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.marks-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.marks-table th,
+.marks-table td {
+    border: 1px solid var(--border-color);
+    padding: 8px;
+    text-align: center;
+    color: var(--text-color);
+}
+
+.marks-table th {
+    background: var(--primary-color);
+    color: white;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.marks-table .subject-col {
+    text-align: left;
+    font-weight: 500;
+}
+
+.marks-table .exam-header {
+    background: var(--secondary-color) !important;
+}
+
+.marks-table .hy-header {
+    background: var(--success-color) !important;
+}
+
+.marks-table .final-header {
+    background: var(--warning-color) !important;
+}
+
+.marks-table .total-row {
+    background: var(--light-bg);
+    font-weight: bold;
+}
+
+.marks-table .weighted-header {
+    background: #9b59b6 !important;
+}
+
+.summary-section {
+    display: flex;
+    justify-content: space-around;
+    padding: 20px;
+    background: var(--light-bg);
+    border-top: 2px solid var(--primary-color);
+    color: var(--text-color);
+}
+
+.summary-item {
+    text-align: center;
+}
+
+.summary-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    text-transform: uppercase;
+}
+
+.summary-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.grade-a1, .grade-a2 { color: #27ae60; }
+.grade-b1, .grade-b2 { color: #f39c12; }
+.grade-c1, .grade-c2 { color: #e67e22; }
+.grade-d, .grade-e { color: #e74c3c; }
+
+.remarks-section {
+    padding: 20px;
+    background: var(--card-bg);
+    border-top: 2px solid var(--primary-color);
+    color: var(--text-color);
+}
+
+.remarks-box {
+    border: 2px dashed var(--border-color);
+    padding: 15px;
+    border-radius: 5px;
+    background: var(--card-bg);
+    color: var(--text-color);
+}
+
+.remarks-label {
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 5px;
+}
+
+.print-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 1000;
+}
+
+@media print {
+    .no-print { display: none !important }
+    .report-card { border: none; }
+    body { background: white; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Print Button -->
+<div class="print-btn no-print">
+    <button class="btn btn-primary btn-lg shadow" onclick="window.print()">
+        <i class="fas fa-print me-2"></i>Print Report Card
+    </button>
+</div>
+
+<div class="fade-in">
+    <div class="report-card shadow">
+        <!-- Header -->
+        <div class="report-header">
+            <div class="school-name">🏫 Modern Public School</div>
+            <div class="report-title">Academic Report Card - {{ student.term or '2024-25' }}</div>
+        </div>
+
+        <!-- Student Info -->
+        <div class="student-info">
+            <div class="info-item">
+                <span class="info-label">Admission No.</span>
+                <span class="info-value">{{ student.admission_no }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Student Name</span>
+                <span class="info-value">{{ student.name }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Class</span>
+                <span class="info-value">Class {{ student.class_name }} - {{ student.section }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Roll No.</span>
+                <span class="info-value">{{ student.roll_no or '-' }}</span>
+            </div>
+        </div>
+
+        <!-- Marks Table -->
+        <table class="marks-table">
+            <thead>
+                <tr>
+                    <th rowspan="2" style="width: 15%">Subject</th>
+                    <th colspan="5" class="exam-header hy-header">Half Yearly (40%)</th>
+                    <th colspan="5" class="exam-header final-header">Final Exam (60%)</th>
+                    <th rowspan="2" class="exam-header weighted-header">Weighted Score</th>
+                </tr>
+                <tr>
+                    <!-- Headers will be set dynamically based on subject -->
+                    <th id="hy-col1" title="Periodic Test">PT</th>
+                    <th id="hy-col2" title="Multiple Assessment">MA</th>
+                    <th id="hy-col3" title="Subject Enrichment">SE</th>
+                    <th id="hy-col4" title="Portfolio">PF</th>
+                    <th id="hy-col5" title="Written Exam">Written</th>
+                    <th id="final-col1" title="Periodic Test">PT</th>
+                    <th id="final-col2" title="Multiple Assessment">MA</th>
+                    <th id="final-col3" title="Subject Enrichment">SE</th>
+                    <th id="final-col4" title="Portfolio">PF</th>
+                    <th id="final-col5" title="Written Exam">Written</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for subject in result.subjects %}
+                <tr>
+                    <td class="subject-col">{{ subject.subject }}</td>
+                    {% if subject.subject.lower() == 'computer' %}
+                    <!-- Computer subject: Theory and Practical -->
+                    <td colspan="4" style="text-align: center; background: #f8f9fa;">Theory</td>
+                    <td>{{ subject.hy_theory }}</td>
+                    <td colspan="4" style="text-align: center; background: var(--light-bg); color: var(--text-color);">Theory</td>
+                    <td>{{ subject.final_theory }}</td>
+                    <td><strong>{{ subject.weighted_score }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="subject-col" style="border-top: none;"></td>
+                    <td colspan="4" style="text-align: center; background: #f8f9fa;">Practical</td>
+                    <td>{{ subject.hy_practical }}</td>
+                    <td colspan="4" style="text-align: center; background: var(--light-bg); color: var(--text-color);">Practical</td>
+                    <td>{{ subject.final_practical }}</td>
+                    <td style="border-top: none;"></td>
+                </tr>
+                    {% else %}
+                    <!-- Regular subjects -->
+                    <td>{{ subject.hy_pt }}</td>
+                    <td>{{ subject.hy_ma }}</td>
+                    <td>{{ subject.hy_se }}</td>
+                    <td>{{ subject.hy_pf }}</td>
+                    <td>{{ subject.hy_written }}</td>
+                    <td>{{ subject.final_pt }}</td>
+                    <td>{{ subject.final_ma }}</td>
+                    <td>{{ subject.final_se }}</td>
+                    <td>{{ subject.final_pf }}</td>
+                    <td>{{ subject.final_written }}</td>
+                    <td><strong>{{ subject.weighted_score }}</strong></td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+                <tr class="total-row">
+                    <td class="subject-col"><strong>Grand Total</strong></td>
+                    <td colspan="5"></td>
+                    <td colspan="5"></td>
+                    <td><strong>{{ result.grand_total }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Summary -->
+        <div class="summary-section">
+            <div class="summary-item">
+                <div class="summary-label">Grand Total</div>
+                <div class="summary-value">{{ result.grand_total }}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Percentage</div>
+                <div class="summary-value">{{ result.percentage }}%</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Grade</div>
+                <div class="summary-value grade-{{ result.grade.lower() }}">{{ result.grade }}</div>
+            </div>
+        </div>
+
+        <!-- Remarks -->
+        <div class="remarks-section">
+            <div class="remarks-box">
+                <div class="remarks-label">Teacher's Remarks:</div>
+                <div>{{ result.remarks }}</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="student-info" style="background: var(--card-bg); border-top: 2px solid var(--primary-color); color: var(--text-color);">
+            <div class="info-item">
+                <span class="info-label">Father's Name</span>
+                <span class="info-value">{{ student.father_name or '-' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Mother's Name</span>
+                <span class="info-value">{{ student.mother_name or '-' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Date of Issue</span>
+                <span class="info-value">{{ student.term or '2024-25' }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="text-center mt-4 no-print">
+        <a href="{{ url_for('results') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Results
+        </a>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Check if there are Computer subjects and update headers accordingly
+document.addEventListener('DOMContentLoaded', function() {
+    const subjects = {{ result.subjects | tojson }};
+    const hasComputer = subjects.some(s => s.subject.toLowerCase() === 'computer');
+    
+    if (hasComputer) {
+        // Update headers for mixed subjects (some Computer, some regular)
+        document.getElementById('hy-col1').textContent = 'Components';
+        document.getElementById('hy-col1').title = 'Subject Components';
+        document.getElementById('hy-col2').textContent = '';
+        document.getElementById('hy-col3').textContent = '';
+        document.getElementById('hy-col4').textContent = '';
+        document.getElementById('hy-col5').textContent = 'Marks';
+        
+        document.getElementById('final-col1').textContent = 'Components';
+        document.getElementById('final-col1').title = 'Subject Components';
+        document.getElementById('final-col2').textContent = '';
+        document.getElementById('final-col3').textContent = '';
+        document.getElementById('final-col4').textContent = '';
+        document.getElementById('final-col5').textContent = 'Marks';
+    }
+});
+</script>
+{% endblock %}
+
+{% endblock %}

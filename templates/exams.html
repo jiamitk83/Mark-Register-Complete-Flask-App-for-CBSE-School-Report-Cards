@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Custom Exams - School Report Card (DEBUG: {{ exams|length if exams else 0 }} exams){% endblock %}
+
+{% block extra_css %}
+<style>
+    .button-group {
+        display: flex !important;
+        gap: 8px !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        padding: 10px !important;
+        background-color: #f8f9fa !important;
+        border-top: 1px solid #dee2e6 !important;
+    }
+    
+    .button-group form {
+        display: inline !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .button-group button,
+    .button-group a {
+        margin: 0 !important;
+        white-space: nowrap !important;
+        visibility: visible !important;
+        display: inline-block !important;
+        opacity: 1 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="page-header">
+        <h1><i class="fas fa-clipboard-list me-3"></i>Custom Exams</h1>
+        <p class="mb-0">Manage and view all custom exams</p>
+    </div>
+
+    <div class="mb-4">
+        <a href="{{ url_for('create_exam') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Create New Exam
+        </a>
+    </div>
+
+    {% if exams %}
+    <!-- DEBUG: Found {{ exams|length }} exams -->
+    <div class="row">
+        {% for exam in exams %}
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">{{ exam.exam_name }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-sm-6">
+                            <strong>Max Marks:</strong> {{ exam.max_marks }}
+                        </div>
+                        <div class="col-sm-6">
+                            <strong>Classes:</strong> {{ exam.classes|join(', ') }}
+                        </div>
+                        <div class="col-sm-6">
+                            <strong>Sections:</strong> {{ exam.sections|join(', ') }}
+                        </div>
+                        <div class="col-sm-6">
+                            <strong>Subjects:</strong> {{ exam.subjects|length }}
+                        </div>
+                        <div class="col-12">
+                            <strong>Students:</strong>
+                            {% if exam.students %}
+                                {{ exam.students|length }} selected
+                            {% else %}
+                                All from selected classes/sections
+                            {% endif %}
+                        </div>
+                        <div class="col-12">
+                            <small class="text-muted">Created: {{ exam.created_at }}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <a href="{{ url_for('enter_exam_marks', exam_name=exam.exam_name) }}" class="btn btn-success btn-sm">
+                        <i class="fas fa-edit me-1"></i>Enter Marks
+                    </a>
+                    <a href="{{ url_for('exam_results', exam_name=exam.exam_name) }}" class="btn btn-info btn-sm">
+                        <i class="fas fa-chart-bar me-1"></i>View Results
+                    </a>
+                    <a href="{{ url_for('edit_exam', exam_name=exam.exam_name) }}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-wrench me-1"></i>Edit
+                    </a>
+                    <form method="POST" action="{{ url_for('delete_exam', exam_name=exam.exam_name) }}" onsubmit="return confirm('Delete this exam? All associated marks will be deleted.');">
+                        <button type="submit" class="btn btn-danger btn-sm">
+                            <i class="fas fa-trash me-1"></i>Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- DEBUG: exams is falsy, type: {{ exams|type }}, value: {{ exams }} -->
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+            <h4>No Custom Exams Created</h4>
+            <p class="text-muted">Create your first custom exam to get started.</p>
+            <a href="{{ url_for('create_exam') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Create Exam
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

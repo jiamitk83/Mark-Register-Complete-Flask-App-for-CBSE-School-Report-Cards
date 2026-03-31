@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Class Results - School Report Card{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="page-header">
+        <h1><i class="fas fa-users me-3"></i>Class Results</h1>
+        <p class="mb-0">Results for Class {{ class_name }} - Section {{ section }}</p>
+    </div>
+
+    <!-- Class Selector -->
+    <div class="card mb-4 no-print">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('class_results') }}">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="class_name" class="form-label">Class</label>
+                        <select class="form-select" id="class_name" name="class_name">
+                            <option value="6" {% if class_name == '6' %}selected{% endif %}>Class 6</option>
+                            <option value="7" {% if class_name == '7' %}selected{% endif %}>Class 7</option>
+                            <option value="8" {% if class_name == '8' %}selected{% endif %}>Class 8</option>
+                            <option value="9" {% if class_name == '9' %}selected{% endif %}>Class 9</option>
+                            <option value="10" {% if class_name == '10' %}selected{% endif %}>Class 10</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="section" class="form-label">Section</label>
+                        <select class="form-select" id="section" name="section">
+                            <option value="A" {% if section == 'A' %}selected{% endif %}>Section A</option>
+                            <option value="B" {% if section == 'B' %}selected{% endif %}>Section B</option>
+                            <option value="C" {% if section == 'C' %}selected{% endif %}>Section C</option>
+                            <option value="D" {% if section == 'D' %}selected{% endif %}>Section D</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-2"></i>View Results
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if results %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Roll No.</th>
+                            <th>Name</th>
+                            {% for subject in results[0].subjects %}
+                            <th>{{ subject.subject[:3] }}</th>
+                            {% endfor %}
+                            <th>Total</th>
+                            <th>%</th>
+                            <th>Grade</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in results|sort(attribute='percentage', reverse=True) %}
+                        <tr>
+                            <td>
+                                {% if loop.index == 1 %}<i class="fas fa-trophy text-warning"></i>{% endif %}
+                                {% if loop.index == 2 %}<i class="fas fa-medal text-secondary"></i>{% endif %}
+                                {% if loop.index == 3 %}<i class="fas fa-medal text-brown"></i>{% endif %}
+                                {{ loop.index }}
+                            </td>
+                            <td>{{ result.student.roll_no or '-' }}</td>
+                            <td><strong>{{ result.student.name }}</strong></td>
+                            {% for subject in result.subjects %}
+                            <td>{{ subject.weighted_score }}</td>
+                            {% endfor %}
+                            <td><strong>{{ result.grand_total }}</strong></td>
+                            <td>{{ result.percentage }}%</td>
+                            <td>
+                                <span class="badge grade-badge grade-{{ result.grade.lower() }}">
+                                    {{ result.grade }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('result_detail', admission_no=result.student.admission_no) }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-users fa-4x text-muted mb-3"></i>
+                <h4>No Results Found</h4>
+                <p class="text-muted">No students with complete marks in this class</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="text-center mt-4 no-print">
+        <a href="{{ url_for('results') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to All Results
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -64,8 +64,8 @@
             <div class="modal-body">
                 <form id="addSubjectForm">
                     <div class="mb-3">
-                        <label for="subjectName" class="form-label">Subject Name</label>
-                        <input type="text" class="form-control" id="subjectName" placeholder="e.g., Mathematics" required>
+                        <label for="newSubjectName" class="form-label">Subject Name</label>
+                        <input type="text" class="form-control" id="newSubjectName" placeholder="e.g., Mathematics" required>
                         <div class="form-text">Enter the full subject name</div>
                     </div>
                 </form>
@@ -84,7 +84,7 @@
 {% block extra_js %}
 <script>
 async function addSubject() {
-    const subjectName = document.getElementById('subjectName').value.trim();
+    const subjectName = document.getElementById('newSubjectName').value.trim();
     
     if (!subjectName) {
         showToast('Error', 'Please enter subject name', 'error');
@@ -138,4 +138,17 @@ async function deleteSubject(subjectId) {
     }
 }
 </script>
+
+<script>
+// Auto-convert text inputs to uppercase
+document.addEventListener('DOMContentLoaded', function() {
+    const textInputs = document.querySelectorAll('input[type="text"]');
+    textInputs.forEach(function(input) {
+        input.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+    });
+});
+</script>
+
 {% endblock %}

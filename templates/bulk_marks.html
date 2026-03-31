@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Marks Entry - School Report Card{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="page-header">
+        <h1><i class="fas fa-table me-3"></i>Bulk Marks Entry</h1>
+        <p class="mb-0">Enter marks for an entire class at once</p>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('bulk_marks') }}">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <label for="class_name" class="form-label">Class <span class="text-danger">*</span></label>
+                        <select class="form-select" id="class_name" name="class_name" required onchange="onSelectionChanged()">
+                            <option value="">Select Class</option>
+                            {% for cls in classes %}
+                            <option value="{{ cls }}">Class {{ cls }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="section" class="form-label">Section <span class="text-danger">*</span></label>
+                        <select class="form-select" id="section" name="section" required onchange="onSelectionChanged()">
+                            <option value="">Select Section</option>
+                            <option value="A">Section A</option>
+                            <option value="B">Section B</option>
+                            <option value="C">Section C</option>
+                            <option value="D">Section D</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="subject" class="form-label">Subject <span class="text-danger">*</span></label>
+                        <select class="form-select" id="subject" name="subject" required onchange="onSelectionChanged()">
+                            <option value="">Select Subject</option>
+                            {% for subject in subjects %}
+                            <option value="{{ subject }}">{{ subject }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="exam_type" class="form-label">Exam <span class="text-danger">*</span></label>
+                        <select class="form-select" id="exam_type" name="exam_type" required onchange="onSelectionChanged()">
+                            <option value="Both">Both</option>
+                            <option value="Half Yearly">Half Yearly</option>
+                            <option value="Final">Final</option>
+                            {% if custom_exams %}
+                            <optgroup label="Custom Exams">
+                                {% for custom in custom_exams %}
+                                <option value="{{ custom['exam_name'] }}">{{ custom['exam_name'] }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-info w-100" onclick="loadStudents()">
+                            <i class="fas fa-search me-2"></i>Load Students
+                        </button>
+                    </div>
+                </div>
+
+                <div id="studentsContainer" style="display: none;">
+                    <!-- Half Yearly Exam -->
+                    <div class="card bg-light mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Half Yearly Exam (40% Weight)</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm" id="hyTable">
+                                    <thead id="hyTableHead">
+                                        <tr>
+                                            <th>Roll No.</th>
+                                            <th>Student Name</th>
+                                            <th title="Periodic Test">PT (5)</th>
+                                            <th title="Multiple Assessment">MA (5)</th>
+                                            <th title="Subject Enrichment">SE (5)</th>
+                                            <th title="Portfolio">PF (5)</th>
+                                            <th title="Written Exam">Written (80)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="hyTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Final Exam -->
+                    <div class="card bg-light mb-4">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="fas fa-calendar-check me-2"></i>Final Exam (60% Weight)</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm" id="finalTable">
+                                    <thead id="finalTableHead">
+                                        <tr>
+                                            <th>Roll No.</th>
+                                            <th>Student Name</th>
+                                            <th title="Periodic Test">PT (5)</th>
+                                            <th title="Multiple Assessment">MA (5)</th>
+                                            <th title="Subject Enrichment">SE (5)</th>
+                                            <th title="Portfolio">PF (5)</th>
+                                            <th title="Written Exam">Written (80)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="finalTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custom Exam Marks (single-value rollup) -->
+                    <div class="card bg-light mb-4" id="customExamContainer" style="display: none;">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0"><i class="fas fa-star me-2"></i>Custom Exam Marks</h5>
+                            <small id="customExamHelp" class="form-text text-white">Enter total marks as per custom exam max marks.</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm" id="customTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Roll No.</th>
+                                            <th>Student Name</th>
+                                            <th>Marks</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="customTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save me-2"></i>Save All Marks
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const customExamData = {{ custom_exams | tojson }};
+
+function parseJsonArray(value) {
+    if (Array.isArray(value)) return value;
+    try {
+        return value ? JSON.parse(value) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function getCustomExamConfig(name) {
+    return customExamData.find(exam => exam.exam_name === name);
+}
+
+function updateCustomExamOptions() {
+    const examSelect = document.getElementById('exam_type');
+    const className = document.getElementById('class_name').value;
+    const section = document.getElementById('section').value;
+    const subject = document.getElementById('subject').value;
+    const existingValue = examSelect.value;
+
+    // Keep the first three elements (Both, Half Yearly, Final) and re-add custom options
+    while (examSelect.options.length > 3) {
+        examSelect.remove(3);
+    }
+
+    if (!className || !section || !subject) {
+        return;
+    }
+
+    const matchingExams = customExamData.filter(exam => {
+        const examClasses = parseJsonArray(exam.classes);
+        const examSections = parseJsonArray(exam.sections);
+        const examSubjects = parseJsonArray(exam.subjects);
+        return examClasses.includes(className) && examSections.includes(section) && examSubjects.includes(subject);
+    });
+
+    if (matchingExams.length > 0) {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = 'Custom Exams';
+
+        matchingExams.forEach(exam => {
+            const option = document.createElement('option');
+            option.value = exam.exam_name;
+            option.textContent = exam.exam_name;
+            option.dataset.custom = '1';
+            optgroup.appendChild(option);
+        });
+
+        examSelect.appendChild(optgroup);
+
+        // Maintain existing selection if still valid, else default to 'Both'
+        if (!['Both', 'Half Yearly', 'Final'].includes(existingValue) && matchingExams.some(e => e.exam_name === existingValue)) {
+            examSelect.value = existingValue;
+        } else if (!['Both', 'Half Yearly', 'Final'].includes(existingValue)) {
+            examSelect.value = 'Both';
+        }
+    } else {
+        // If a currently selected custom exam no longer matches, reset
+        if (!['Both', 'Half Yearly', 'Final'].includes(existingValue)) {
+            examSelect.value = 'Both';
+        }
+    }
+}
+
+// Function to update table headers based on subject
+function updateTableHeaders() {
+    const subject = document.getElementById('subject').value.toLowerCase();
+    const hyHead = document.getElementById('hyTableHead');
+    const finalHead = document.getElementById('finalTableHead');
+
+    if (subject === 'computer') {
+        hyHead.innerHTML = `
+            <tr>
+                <th>Roll No.</th>
+                <th>Student Name</th>
+                <th title="Theory">Theory (70)</th>
+                <th title="Practical">Practical (30)</th>
+                <th colspan="3"></th>
+            </tr>
+        `;
+        finalHead.innerHTML = hyHead.innerHTML;
+    } else {
+        hyHead.innerHTML = `
+            <tr>
+                <th>Roll No.</th>
+                <th>Student Name</th>
+                <th title="Periodic Test">PT (5)</th>
+                <th title="Multiple Assessment">MA (5)</th>
+                <th title="Subject Enrichment">SE (5)</th>
+                <th title="Portfolio">PF (5)</th>
+                <th title="Written Exam">Written (80)</th>
+            </tr>
+        `;
+        finalHead.innerHTML = hyHead.innerHTML;
+    }
+}
+
+function updateExamVisibility() {
+    const examType = document.getElementById('exam_type').value;
+    const hyCard = document.querySelector('#studentsContainer .card:nth-child(1)');
+    const finalCard = document.querySelector('#studentsContainer .card:nth-child(2)');
+    const customCard = document.getElementById('customExamContainer');
+
+    if (examType === 'Half Yearly') {
+        hyCard.style.display = 'block';
+        finalCard.style.display = 'none';
+        customCard.style.display = 'none';
+    } else if (examType === 'Final') {
+        hyCard.style.display = 'none';
+        finalCard.style.display = 'block';
+        customCard.style.display = 'none';
+    } else if (examType === 'Both') {
+        hyCard.style.display = 'block';
+        finalCard.style.display = 'block';
+        customCard.style.display = 'none';
+    } else {
+        hyCard.style.display = 'none';
+        finalCard.style.display = 'none';
+        customCard.style.display = 'block';
+        const customExam = getCustomExamConfig(examType);
+        const help = document.getElementById('customExamHelp');
+        if (customExam) {
+            help.innerHTML = `Enter marks for custom exam (Max: ${customExam.max_marks}).`;
+        } else {
+            help.innerHTML = 'Selected custom exam not found. Please choose another.';
+        }
+    }
+}
+
+function onSelectionChanged() {
+    updateCustomExamOptions();
+    updateTableHeaders();
+    updateExamVisibility();
+    loadStudents();
+}
+
+// Add event listeners
+if (document.getElementById('subject')) {
+    document.getElementById('subject').addEventListener('change', onSelectionChanged);
+}
+if (document.getElementById('exam_type')) {
+    document.getElementById('exam_type').addEventListener('change', onSelectionChanged);
+}
+
+async function loadStudents() {
+    const className = document.getElementById('class_name').value;
+    const section = document.getElementById('section').value;
+    const subject = document.getElementById('subject').value;
+    const examType = document.getElementById('exam_type').value;
+
+    if (!className || !section || !subject) {
+        return;
+    }
+
+    const response = await fetch(`/get-class-students?class_name=${className}&section=${section}`);
+    const students = await response.json();
+
+    if (students.length === 0) {
+        alert('No students found in this class');
+        return;
+    }
+
+    const hyBody = document.getElementById('hyTableBody');
+    const finalBody = document.getElementById('finalTableBody');
+    const customBody = document.getElementById('customTableBody');
+
+    hyBody.innerHTML = '';
+    finalBody.innerHTML = '';
+    customBody.innerHTML = '';
+
+    if (examType !== 'Both' && examType !== 'Half Yearly' && examType !== 'Final') {
+        const customExam = getCustomExamConfig(examType);
+        if (!customExam) {
+            alert('Selected custom exam not found.');
+            return;
+        }
+
+        const allowedSubjects = JSON.parse(customExam.subjects || '[]');
+        if (!allowedSubjects.includes(subject)) {
+            alert(`Subject ${subject} is not part of ${examType}.`);
+            return;
+        }
+
+        students.forEach(student => {
+            customBody.innerHTML += `
+                <tr>
+                    <td>${student.roll_no || '-'}</td>
+                    <td><strong>${student.name}</strong></td>
+                    <td><input type="number" class="form-control form-control-sm" name="custom_mark_${student.admission_no}" min="0" max="${customExam.max_marks}" step="0.1" value="0"></td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('studentsContainer').style.display = 'block';
+        return;
+    }
+
+    students.forEach(student => {
+        if (subject.toLowerCase() === 'computer') {
+            // Computer subject: Theory and Practical
+            const hyRow = `
+                <tr>
+                    <td>${student.roll_no || '-'}</td>
+                    <td><strong>${student.name}</strong></td>
+                    <td><input type="number" class="form-control form-control-sm" name="hy_theory_${student.admission_no}" min="0" max="70" step="0.1" value="0"></td>
+                    <td><input type="number" class="form-control form-control-sm" name="hy_practical_${student.admission_no}" min="0" max="30" step="0.1" value="0"></td>
+                    <td colspan="3"></td>
+                </tr>
+            `;
+            hyBody.innerHTML += hyRow;
+
+            const finalRow = `
+                <tr>
+                    <td>${student.roll_no || '-'}</td>
+                    <td><strong>${student.name}</strong></td>
+                    <td><input type="number" class="form-control form-control-sm" name="final_theory_${student.admission_no}" min="0" max="70" step="0.1" value="0"></td>
+                    <td><input type="number" class="form-control form-control-sm" name="final_practical_${student.admission_no}" min="0" max="30" step="0.1" value="0"></td>
+                    <td colspan="3"></td>
+                </tr>
+            `;
+            finalBody.innerHTML += finalRow;
+        } else {
+            // Regular subjects
+            const hyRow = `
+                <tr>
+                    <td>${student.roll_no || '-'}</td>
+                    <td><strong>${student.name}</strong></td>
+                    <td><input type="number" class="form-control form-control-sm" name="hy_pt_${student.admission_no}" min="0" max="5" step="0.1" value="0"></td>
+                    <td><input type="number" class="form-control form-control-sm" name="hy_ma_${student.admission_no}" min="0" max="5" step="0.1" value="0"></td>
+                    <td><input type="number" class="form-control form-control-sm" name="hy_se_${student.admission_no}" min="0" max="5" step="0.1" value="0"></td>
+                    <td><input type="number" class="form-control form-control-sm" name="hy_pf_${student.admission_no}" min="0" max="5" step="0.1" value="0"></td>
+                    <td><input type="number" class="form-control form-control-sm" name="hy_written_${student.admission_no}" min="0" max="80" step="0.1" value="0"></td>
+                </tr>
+            `;
+            hyBody.innerHTML += hyRow;
+
+            const finalRow = `
+                <tr>
+                    <td>${student.roll_no || '-'}</td>
+                    <td><strong>${student.name}</strong></td>
+                    <td><input type="number" class="form-control form-control-sm" name="final_pt_${student.admission_no}" min="0" max="5" step="0.1" value="0"></td>
+                    <td><input type="number" class="form-control form-control-sm" name="final_ma_${student.admission_no}" min="0" max="5" step="0.1" value="0"></td>
+                    <td><input type="number" class="form-control form-control-sm" name="final_se_${student.admission_no}" min="0" max="5" step="0.1" value="0"></td>
+                    <td><input type="number" class="form-control form-control-sm" name="final_pf_${student.admission_no}" min="0" max="5" step="0.1" value="0"></td>
+                    <td><input type="number" class="form-control form-control-sm" name="final_written_${student.admission_no}" min="0" max="80" step="0.1" value="0"></td>
+                </tr>
+            `;
+            finalBody.innerHTML += finalRow;
+        }
+    });
+
+    document.getElementById('studentsContainer').style.display = 'block';
+}
+
+// Initialize show/hide state
+document.addEventListener('DOMContentLoaded', function() {
+    onSelectionChanged();
+});
+</script>
+{% endblock %}
+
+
+

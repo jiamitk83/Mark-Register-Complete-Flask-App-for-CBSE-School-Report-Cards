@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Enter Marks - {{ exam_name }} - School Report Card{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="page-header">
+        <h1><i class="fas fa-edit me-3"></i>Enter Marks: {{ exam_name }}</h1>
+        <p class="mb-0">Maximum marks per subject: {{ exam.max_marks }}</p>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('enter_exam_marks', exam_name=exam_name) }}">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label for="student_id" class="form-label">Select Student <span class="text-danger">*</span></label>
+                        <select class="form-select" id="student_id" name="student_id" required onchange="loadStudentMarks()">
+                            <option value="">Select Student</option>
+                            {% for student in students %}
+                            <option value="{{ student.admission_no }}">{{ student.name }} ({{ student.class_name }}-{{ student.section }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="subject" class="form-label">Select Subject <span class="text-danger">*</span></label>
+                        <select class="form-select" id="subject" name="subject" required onchange="loadStudentMarks()">
+                            <option value="">Select Subject</option>
+                            {% for subject in subjects %}
+                            <option value="{{ subject }}">{{ subject }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card bg-light">
+                    <div class="card-header">
+                        <h5 class="mb-0">Enter Marks (Max: {{ exam.max_marks }})</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="marks" class="form-label">Marks Obtained <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control form-control-lg" id="marks" name="marks"
+                                       min="0" max="{{ exam.max_marks }}" step="0.1" required placeholder="0.0">
+                                <div class="form-text">Maximum allowed: {{ exam.max_marks }}</div>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <button type="submit" class="btn btn-success btn-lg w-100">
+                                    <i class="fas fa-save me-2"></i>Save Marks
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Current Marks Display -->
+    <div id="currentMarks" class="card" style="display: none;">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Current Marks for Selected Student & Subject</h5>
+        </div>
+        <div class="card-body">
+            <div id="marksDisplay"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function loadStudentMarks() {
+    const studentId = document.getElementById('student_id').value;
+    const subject = document.getElementById('subject').value;
+
+    if (studentId && subject) {
+        fetch(`/api/get-marks?student_id=${studentId}&subject=${subject}&exam_type={{ exam_name }}`)
+            .then(response => response.json())
+            .then(data => {
+                const display = document.getElementById('marksDisplay');
+                const card = document.getElementById('currentMarks');
+
+                if (data) {
+                    display.innerHTML = `
+                        <div class="alert alert-info">
+                            <strong>Current Marks:</strong> ${data.written || 0} / {{ exam.max_marks }}
+                        </div>
+                    `;
+                    document.getElementById('marks').value = data.written || 0;
+                    card.style.display = 'block';
+                } else {
+                    display.innerHTML = `
+                        <div class="alert alert-warning">
+                            No marks entered yet for this subject.
+                        </div>
+                    `;
+                    document.getElementById('marks').value = 0;
+                    card.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading marks:', error);
+            });
+    } else {
+        document.getElementById('currentMarks').style.display = 'none';
+    }
+}
+
+// Load marks when page loads if values are pre-selected
+document.addEventListener('DOMContentLoaded', function() {
+    loadStudentMarks();
+});
+</script>
+
+{% endblock %}

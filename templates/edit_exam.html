@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Custom Exam - School Report Card{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="page-header">
+        <h1><i class="fas fa-edit me-3"></i>Edit Custom Exam</h1>
+        <p class="mb-0">Modify exam configuration</p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('edit_exam', exam_name=exam.exam_name) }}">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="exam_name" class="form-label">Exam Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="exam_name" name="exam_name" required placeholder="e.g., UNIT TEST 1" value="{{ exam.exam_name }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="max_marks" class="form-label">Maximum Marks per Subject <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="max_marks" name="max_marks" required min="1" max="100" value="{{ exam.max_marks }}">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Classes Involved <span class="text-danger">*</span></label>
+                                <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                                    {% for class_name in available_classes %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="classes" value="{{ class_name }}" id="class_{{ class_name }}" {% if class_name in exam.classes %}checked{% endif %}>
+                                        <label class="form-check-label" for="class_{{ class_name }}">
+                                            Class {{ class_name }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Sections Involved <span class="text-danger">*</span></label>
+                                <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                                    {% for section in available_sections %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="sections" value="{{ section }}" id="section_{{ section }}" {% if section in exam.sections %}checked{% endif %}>
+                                        <label class="form-check-label" for="section_{{ section }}">
+                                            Section {{ section }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Subjects Involved <span class="text-danger">*</span></label>
+                                <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                                    {% for subject in subjects %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="subjects" value="{{ subject }}" id="subject_{{ subject }}" {% if subject in exam.subjects %}checked{% endif %}>
+                                        <label class="form-check-label" for="subject_{{ subject }}">
+                                            {{ subject }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Specific Students (Optional - if not selected, all students from chosen classes/sections will be included)</label>
+                                <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
+                                    {% for student in available_students %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="students" value="{{ student.admission_no }}" id="student_{{ student.admission_no }}" {% if student.admission_no in exam.students %}checked{% endif %}>
+                                        <label class="form-check-label" for="student_{{ student.admission_no }}">
+                                            {{ student.name }} ({{ student.class_name }}-{{ student.section }})
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <hr>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Update Exam
+                                </button>
+                                <a href="{{ url_for('exams') }}" class="btn btn-secondary ms-2">
+                                    <i class="fas fa-times me-2"></i>Cancel
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-convert text inputs to uppercase
+document.addEventListener('DOMContentLoaded', function() {
+    const textInputs = document.querySelectorAll('input[type="text"]');
+    textInputs.forEach(function(input) {
+        input.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+    });
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Enter Marks - School Report Card{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="page-header">
+        <h1><i class="fas fa-pen me-3"></i>Enter Marks</h1>
+        <p class="mb-0">Enter marks for each subject - Half Yearly and Final Exam</p>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('enter_marks') }}">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label for="student_id" class="form-label">Select Student <span class="text-danger">*</span></label>
+                        <select class="form-select" id="student_id" name="student_id" required>
+                            <option value="">Select Student</option>
+                            {% for student in students %}
+                            <option value="{{ student.admission_no }}">{{ student.name }} ({{ student.class_name }}-{{ student.section }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="subject" class="form-label">Select Subject <span class="text-danger">*</span></label>
+                        <select class="form-select" id="subject" name="subject" required>
+                            <option value="">Select Subject</option>
+                            {% for subject in subjects %}
+                            <option value="{{ subject }}">{{ subject }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="button" class="btn btn-info w-100" onclick="loadStudentMarks()">
+                            <i class="fas fa-search me-2"></i>Load Existing Marks
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Half Yearly Exam -->
+                <div class="card bg-light mb-4" id="half-yearly-card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Half Yearly Exam (40% Weight)</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Regular subjects -->
+                        <div class="row g-3 regular-fields">
+                            <div class="col-md-2">
+                                <label class="form-label">PT (5)</label>
+                                <input type="number" class="form-control" name="hy_pt" min="0" max="5" step="0.1" value="0">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">MA (5)</label>
+                                <input type="number" class="form-control" name="hy_ma" min="0" max="5" step="0.1" value="0">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">SE (5)</label>
+                                <input type="number" class="form-control" name="hy_se" min="0" max="5" step="0.1" value="0">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">PF (5)</label>
+                                <input type="number" class="form-control" name="hy_pf" min="0" max="5" step="0.1" value="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Written (80)</label>
+                                <input type="number" class="form-control" name="hy_written" min="0" max="80" step="0.1" value="0">
+                            </div>
+                        </div>
+                        <!-- Computer subjects -->
+                        <div class="row g-3 computer-fields" style="display: none;">
+                            <div class="col-md-6">
+                                <label class="form-label">Theory (70)</label>
+                                <input type="number" class="form-control" name="hy_theory" min="0" max="70" step="0.1" value="0">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Practical (30)</label>
+                                <input type="number" class="form-control" name="hy_practical" min="0" max="30" step="0.1" value="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Final Exam -->
+                <div class="card bg-light mb-4" id="final-card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-calendar-check me-2"></i>Final Exam (60% Weight)</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Regular subjects -->
+                        <div class="row g-3 regular-fields">
+                            <div class="col-md-2">
+                                <label class="form-label">PT (5)</label>
+                                <input type="number" class="form-control" name="final_pt" min="0" max="5" step="0.1" value="0">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">MA (5)</label>
+                                <input type="number" class="form-control" name="final_ma" min="0" max="5" step="0.1" value="0">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">SE (5)</label>
+                                <input type="number" class="form-control" name="final_se" min="0" max="5" step="0.1" value="0">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">PF (5)</label>
+                                <input type="number" class="form-control" name="final_pf" min="0" max="5" step="0.1" value="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Written (80)</label>
+                                <input type="number" class="form-control" name="final_written" min="0" max="80" step="0.1" value="0">
+                            </div>
+                        </div>
+                        <!-- Computer subjects -->
+                        <div class="row g-3 computer-fields" style="display: none;">
+                            <div class="col-md-6">
+                                <label class="form-label">Theory (70)</label>
+                                <input type="number" class="form-control" name="final_theory" min="0" max="70" step="0.1" value="0">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Practical (30)</label>
+                                <input type="number" class="form-control" name="final_practical" min="0" max="30" step="0.1" value="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-2"></i>Save Marks
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Function to toggle between regular and computer fields
+function toggleSubjectFields() {
+    const subject = document.getElementById('subject').value.toLowerCase();
+    const regularFields = document.querySelectorAll('.regular-fields');
+    const computerFields = document.querySelectorAll('.computer-fields');
+    
+    if (subject === 'computer') {
+        regularFields.forEach(field => field.style.display = 'none');
+        computerFields.forEach(field => field.style.display = 'flex');
+    } else {
+        regularFields.forEach(field => field.style.display = 'flex');
+        computerFields.forEach(field => field.style.display = 'none');
+    }
+}
+
+// Add event listener to subject dropdown
+document.getElementById('subject').addEventListener('change', toggleSubjectFields);
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', toggleSubjectFields);
+
+async function loadStudentMarks() {
+    const studentId = document.getElementById('student_id').value;
+    const subject = document.getElementById('subject').value;
+    
+    if (!studentId || !subject) {
+        alert('Please select both student and subject');
+        return;
+    }
+    
+    // Load Half Yearly marks
+    const hyResponse = await fetch(`/api/get-marks?student_id=${studentId}&subject=${subject}&exam_type=Half Yearly`);
+    const hyData = await hyResponse.json();
+    
+    if (hyData) {
+        if (subject.toLowerCase() === 'computer') {
+            document.querySelector('input[name="hy_theory"]').value = hyData.theory || 0;
+            document.querySelector('input[name="hy_practical"]').value = hyData.practical || 0;
+        } else {
+            document.querySelector('input[name="hy_pt"]').value = hyData.pt || 0;
+            document.querySelector('input[name="hy_ma"]').value = hyData.ma || 0;
+            document.querySelector('input[name="hy_se"]').value = hyData.se || 0;
+            document.querySelector('input[name="hy_pf"]').value = hyData.pf || 0;
+            document.querySelector('input[name="hy_written"]').value = hyData.written || 0;
+        }
+    }
+    
+    // Load Final marks
+    const finalResponse = await fetch(`/api/get-marks?student_id=${studentId}&subject=${subject}&exam_type=Final`);
+    const finalData = await finalResponse.json();
+    
+    if (finalData) {
+        if (subject.toLowerCase() === 'computer') {
+            document.querySelector('input[name="final_theory"]').value = finalData.theory || 0;
+            document.querySelector('input[name="final_practical"]').value = finalData.practical || 0;
+        } else {
+            document.querySelector('input[name="final_pt"]').value = finalData.pt || 0;
+            document.querySelector('input[name="final_ma"]').value = finalData.ma || 0;
+            document.querySelector('input[name="final_se"]').value = finalData.se || 0;
+            document.querySelector('input[name="final_pf"]').value = finalData.pf || 0;
+            document.querySelector('input[name="final_written"]').value = finalData.written || 0;
+        }
+    }
+}
+</script>
+{% endblock %}
+{% endblock %}
