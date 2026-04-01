@@ -111,6 +111,56 @@
         .btn-link:hover {
             color: white;
         }
+
+        .theme-switch {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255,255,255,0.9);
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .theme-switch input {
+            display: none;
+        }
+
+        .theme-switch-slider {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: rgba(255,255,255,0.35);
+            border-radius: 999px;
+            transition: background-color 0.25s ease;
+            flex-shrink: 0;
+        }
+
+        .theme-switch-slider::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.25s ease;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
+
+        .theme-switch input:checked + .theme-switch-slider {
+            background: rgba(39, 174, 96, 0.85);
+        }
+
+        .theme-switch input:checked + .theme-switch-slider::before {
+            transform: translateX(20px);
+        }
+
+        .theme-label {
+            min-width: 44px;
+        }
         
         .card:hover {
             transform: translateY(-2px);
@@ -214,7 +264,7 @@
             <a class="navbar-brand" href="{{ url_for('index') }}">
                 <i class="fas fa-school me-2"></i>School Report Card
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation" title="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -245,13 +295,23 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('bulk_marks') }}">
-                            <i class="fas fa-table me-1"></i>Bulk Marks
+                        <a class="nav-link" href="/exam-results/PT1">
+                            <i class="fas fa-chart-bar me-1"></i>PT1 Results
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('results') }}">
-                            <i class="fas fa-chart-bar me-1"></i>Results
+                        <a class="nav-link" href="/pt2-results">
+                            <i class="fas fa-star me-1 text-warning"></i>PT2 Results
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('half_yearly_results') }}">
+                            <i class="fas fa-file-alt me-2"></i>Half Yearly Marksheet
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('bulk_marks') }}">
+                            <i class="fas fa-table me-1"></i>Bulk Marks
                         </a>
                     </li>
                     <li class="nav-item">
@@ -259,10 +319,13 @@
                             <i class="fas fa-search me-1"></i>Search
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <button class="btn btn-link nav-link" id="theme-toggle" title="Toggle Dark Mode">
-                            <i class="fas fa-moon me-1"></i><span id="theme-text">Dark</span>
-                        </button>
+                    <li class="nav-item d-flex align-items-center ms-2">
+                        <label class="theme-switch" for="theme-toggle" title="Toggle Dark Mode">
+                            <input type="checkbox" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+                            <span class="theme-switch-slider"></span>
+                            <span id="theme-text" class="theme-label">Dark</span>
+                            <i id="theme-icon" class="fas fa-moon"></i>
+                        </label>
                     </li>
                 </ul>
             </div>
@@ -276,7 +339,7 @@
                 {% for category, message in messages %}
                     <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
                         {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close alert" title="Close alert"></button>
                     </div>
                 {% endfor %}
             {% endif %}
@@ -304,24 +367,28 @@
             if (!themeToggle || !themeText) {
                 return;
             }
-            const themeIcon = themeToggle.querySelector('i');
+            const themeIcon = document.getElementById('theme-icon');
             if (!themeIcon) {
                 return;
             }
-            
+
+            function applyTheme(theme) {
+                if (theme === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    themeToggle.checked = true;
+                    themeIcon.className = 'fas fa-sun';
+                    themeText.textContent = 'Light';
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                    themeToggle.checked = false;
+                    themeIcon.className = 'fas fa-moon';
+                    themeText.textContent = 'Dark';
+                }
+            }
+
             // Check for saved theme preference or default to light mode
             const currentTheme = localStorage.getItem('theme') || 'light';
-            
-            // Apply the current theme
-            if (currentTheme === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                themeIcon.className = 'fas fa-sun me-1';
-                themeText.textContent = 'Light';
-            } else {
-                document.documentElement.removeAttribute('data-theme');
-                themeIcon.className = 'fas fa-moon me-1';
-                themeText.textContent = 'Dark';
-            }
+            applyTheme(currentTheme);
 
             // Dynamic year in footer
             const yearElement = document.getElementById('current-year');
@@ -329,23 +396,11 @@
                 yearElement.textContent = new Date().getFullYear();
             }
             
-            // Toggle theme on button click
-            themeToggle.addEventListener('click', function() {
-                const currentTheme = document.documentElement.getAttribute('data-theme');
-                
-                if (currentTheme === 'dark') {
-                    // Switch to light mode
-                    document.documentElement.removeAttribute('data-theme');
-                    themeIcon.className = 'fas fa-moon me-1';
-                    themeText.textContent = 'Dark';
-                    localStorage.setItem('theme', 'light');
-                } else {
-                    // Switch to dark mode
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                    themeIcon.className = 'fas fa-sun me-1';
-                    themeText.textContent = 'Light';
-                    localStorage.setItem('theme', 'dark');
-                }
+            // Toggle theme on switch change
+            themeToggle.addEventListener('change', function() {
+                const nextTheme = themeToggle.checked ? 'dark' : 'light';
+                applyTheme(nextTheme);
+                localStorage.setItem('theme', nextTheme);
             });
         });
     </script>

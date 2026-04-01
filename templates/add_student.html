@@ -10,7 +10,7 @@
     </div>
 
     <div class="row">
-        <div class="col-md-8 mx-auto">
+        <div class="col-md-8 mx-auto mb-4">
             <div class="card">
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('add_student') }}">
@@ -69,6 +69,56 @@
                             </div>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Detailed Students List</h5>
+                    <span class="badge bg-primary">{{ students|length }} Students</span>
+                </div>
+                <div class="card-body">
+                    {% if students %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Admission No</th>
+                                    <th>Name</th>
+                                    <th>Class</th>
+                                    <th>Section</th>
+                                    <th>Roll No</th>
+                                    <th>Father Name</th>
+                                    <th>Mother Name</th>
+                                    <th>DOB</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td><strong>{{ student.admission_no }}</strong></td>
+                                    <td>{{ student.name }}</td>
+                                    <td>Class {{ student.class_name }}</td>
+                                    <td>{{ student.section }}</td>
+                                    <td>{{ student.roll_no if student.roll_no else '-' }}</td>
+                                    <td>{{ student.father_name if student.father_name else '-' }}</td>
+                                    <td>{{ student.mother_name if student.mother_name else '-' }}</td>
+                                    <td>{{ student.dob if student.dob else '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-users fa-2x text-muted mb-2"></i>
+                        <p class="mb-0 text-muted">No students found yet.</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

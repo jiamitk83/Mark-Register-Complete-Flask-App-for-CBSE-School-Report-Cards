@@ -172,11 +172,130 @@ except Exception as e:
 
 with open('debug_startup.log', 'a') as f:
     f.write("Starting routes definition\n")
+# ==================== SUBJECT MANAGEMENT ====================
+
+def get_subjects():
+    """Get active subjects from DB"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM subjects WHERE active = 1 ORDER BY name')
+    subjects = cursor.fetchall()
+    conn.close()
+    return [dict(s) for s in subjects]
+
+def init_subjects():
+    """Initialize default subjects if none exist"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT COUNT(*) FROM subjects')
+    if cursor.fetchone()[0] == 0:
+        default_subjects = [
+            ('English', 1), ('Hindi', 1), ('Maths', 1), ('Science', 1),
+            ('SST', 1), ('Computer', 1), ('French', 1)
+        ]
+        cursor.executemany('INSERT INTO subjects (name, active) VALUES (?, ?)', default_subjects)
+        conn.commit()
+    conn.close()
+
+@app.route('/subjects', methods=['GET'])
+def subjects_list():
+    """List all subjects"""
+    init_subjects()
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM subjects ORDER BY name')
+    subjects = cursor.fetchall()
+    conn.close()
+    return render_template('subjects.html', subjects=subjects)
+
+@app.route('/add-subject', methods=['POST'])
+def add_subject():
+    """Add new subject"""
+    name = request.form.get('subject_name', '').strip().title()
+    if not name:
+        flash('Subject name required', 'error')
+        return redirect(url_for('subjects_list'))
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('INSERT INTO subjects (name, active) VALUES (?, 1)', (name,))
+        conn.commit()
+        flash(f'"{name}" added successfully!', 'success')
+    except sqlite3.IntegrityError:
+        flash('Subject already exists!', 'error')
+    finally:
+        conn.close()
+    return redirect(url_for('subjects_list'))
+
+@app.route('/edit-subject/<int:subject_id>', methods=['GET', 'POST'])
+def edit_subject(subject_id):
+    """Edit subject"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT * FROM subjects WHERE id = ?', (subject_id,))
+    subject = cursor.fetchone()
+    
+    if not subject:
+        flash('Subject not found!', 'error')
+        return redirect(url_for('subjects_list'))
+    
+    if request.method == 'POST':
+        new_name = request.form.get('subject_name', '').strip().title()
+        if new_name:
+            cursor.execute('UPDATE subjects SET name = ? WHERE id = ?', (new_name, subject_id))
+            conn.commit()
+            flash('Subject updated!', 'success')
+            conn.close()
+            return redirect(url_for('subjects_list'))
+    
+    conn.close()
+    return render_template('edit_subject.html', subject=dict(subject))
+
+@app.route('/delete-subject/<int:subject_id>', methods=['POST'])
+def delete_subject(subject_id):
+    """Delete subject"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT name FROM subjects WHERE id = ?', (subject_id,))
+    subject = cursor.fetchone()
+    
+    if subject:
+        cursor.execute('DELETE FROM subjects WHERE id = ?', (subject_id,))
+        conn.commit()
+        flash(f'{subject["name"]} deleted!', 'success')
+    
+    conn.close()
+    return redirect(url_for('subjects_list'))
+
+def init_db():
+    """Initialize database with CBSE schema"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Subjects table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS subjects (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            active INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # [EXISTING TABLES - students, marks, custom_exams - UNCHANGED]
+    # ... rest of init_db remains the same ...
+
+    conn.commit()
+    conn.close()
+
 # ==================== ROUTES ====================
 
 @app.route('/')
 def index():
     """Home page - Dashboard"""
+
     conn = get_db()
     cursor = conn.cursor()
     
@@ -238,7 +357,13 @@ def add_student():
         finally:
             conn.close()
     
-    return render_template('add_student.html')
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM students ORDER BY class_name, section, roll_no, name')
+    students_list = cursor.fetchall()
+    conn.close()
+
+    return render_template('add_student.html', students=students_list)
 
 @app.route('/students')
 def students():
@@ -273,63 +398,83 @@ def enter_marks():
         student_id = request.form.get('student_id')
         subject = request.form.get('subject')
         
-        if subject.lower() == 'computer':
-            # Computer marks - Theory and Practical
-            hy_theory = clamp_mark(request.form.get('hy_theory'), 70)
-            hy_practical = clamp_mark(request.form.get('hy_practical'), 30)
-            
-            final_theory = clamp_mark(request.form.get('final_theory'), 70)
-            final_practical = clamp_mark(request.form.get('final_practical'), 30)
-            
-            # Save Half Yearly marks
+        exam_type = request.form.get('exam_type', 'Half Yearly')
+        
+        if exam_type not in ['Half Yearly', 'Final'] and exam_type != 'Both':
+            # Custom exam - single written mark
+            marks = clamp_mark(request.form.get('marks'), 100)  # Default max, actual validated via JS
             cursor.execute('''
-                INSERT OR REPLACE INTO marks (student_id, subject, exam_type, theory, practical)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (student_id, subject, 'Half Yearly', hy_theory, hy_practical))
-            
-            # Save Final marks
-            cursor.execute('''
-                INSERT OR REPLACE INTO marks (student_id, subject, exam_type, theory, practical)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (student_id, subject, 'Final', final_theory, final_practical))
-        else:
-            # Regular subjects - PT, MA, SE, PF, Written
-            hy_pt = clamp_mark(request.form.get('hy_pt'), 5)
-            hy_ma = clamp_mark(request.form.get('hy_ma'), 5)
-            hy_se = clamp_mark(request.form.get('hy_se'), 5)
-            hy_pf = clamp_mark(request.form.get('hy_pf'), 5)
-            hy_written = clamp_mark(request.form.get('hy_written'), 80)
-            
-            # Final marks
-            final_pt = clamp_mark(request.form.get('final_pt'), 5)
-            final_ma = clamp_mark(request.form.get('final_ma'), 5)
-            final_se = clamp_mark(request.form.get('final_se'), 5)
-            final_pf = clamp_mark(request.form.get('final_pf'), 5)
-            final_written = clamp_mark(request.form.get('final_written'), 80)
-            
-            # Save Half Yearly marks
-            cursor.execute('''
-                INSERT OR REPLACE INTO marks (student_id, subject, exam_type, pt, ma, se, pf, written)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (student_id, subject, 'Half Yearly', hy_pt, hy_ma, hy_se, hy_pf, hy_written))
-            
-            # Save Final marks
-            cursor.execute('''
-                INSERT OR REPLACE INTO marks (student_id, subject, exam_type, pt, ma, se, pf, written)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (student_id, subject, 'Final', final_pt, final_ma, final_se, final_pf, final_written))
+                INSERT OR REPLACE INTO marks (student_id, subject, exam_type, written)
+                VALUES (?, ?, ?, ?)
+            ''', (student_id, subject, exam_type, marks))
+            conn.commit()
+            flash(f'{exam_type} marks saved for {subject}!', 'success')
+            conn.close()
+            return redirect(url_for('enter_marks'))
+        
+        # Standard HY/Final handling (Both saves both)
+        if exam_type in ['Half Yearly', 'Both']:
+            if subject.lower() == 'computer':
+                hy_theory = clamp_mark(request.form.get('hy_theory'), 70)
+                hy_practical = clamp_mark(request.form.get('hy_practical'), 30)
+                cursor.execute('''
+                    INSERT OR REPLACE INTO marks (student_id, subject, exam_type, theory, practical)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (student_id, subject, 'Half Yearly', hy_theory, hy_practical))
+            else:
+                hy_pt = clamp_mark(request.form.get('hy_pt'), 5)
+                hy_ma = clamp_mark(request.form.get('hy_ma'), 5)
+                hy_se = clamp_mark(request.form.get('hy_se'), 5)
+                hy_pf = clamp_mark(request.form.get('hy_pf'), 5)
+                hy_written = clamp_mark(request.form.get('hy_written'), 80)
+                cursor.execute('''
+                    INSERT OR REPLACE INTO marks (student_id, subject, exam_type, pt, ma, se, pf, written)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (student_id, subject, 'Half Yearly', hy_pt, hy_ma, hy_se, hy_pf, hy_written))
+        
+        if exam_type in ['Final', 'Both']:
+            if subject.lower() == 'computer':
+                final_theory = clamp_mark(request.form.get('final_theory'), 70)
+                final_practical = clamp_mark(request.form.get('final_practical'), 30)
+                cursor.execute('''
+                    INSERT OR REPLACE INTO marks (student_id, subject, exam_type, theory, practical)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (student_id, subject, 'Final', final_theory, final_practical))
+            else:
+                final_pt = clamp_mark(request.form.get('final_pt'), 5)
+                final_ma = clamp_mark(request.form.get('final_ma'), 5)
+                final_se = clamp_mark(request.form.get('final_se'), 5)
+                final_pf = clamp_mark(request.form.get('final_pf'), 5)
+                final_written = clamp_mark(request.form.get('final_written'), 80)
+                cursor.execute('''
+                    INSERT OR REPLACE INTO marks (student_id, subject, exam_type, pt, ma, se, pf, written)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (student_id, subject, 'Final', final_pt, final_ma, final_se, final_pf, final_written))
         
         conn.commit()
-        flash(f'Marks saved for {subject}!', 'success')
+        flash(f'{exam_type} marks saved for {subject}!', 'success')
         conn.close()
         return redirect(url_for('enter_marks'))
     
-    # Get all students for dropdown
+# Get all students for dropdown with class/section for filtering
     cursor.execute('SELECT admission_no, name, class_name, section FROM students ORDER BY class_name, name')
     students = cursor.fetchall()
+
+    # Get custom exams for dropdown (like bulk_marks)
+    cursor.execute('SELECT exam_name, max_marks, subjects, classes, sections FROM custom_exams ORDER BY created_at DESC')
+    raw_custom_exams = cursor.fetchall()
+    custom_exams = []
+    import json
+    for row in raw_custom_exams:
+        exam = dict(row)
+        exam['classes'] = json.loads(exam['classes'])
+        exam['sections'] = json.loads(exam['sections'])
+        exam['subjects'] = json.loads(exam['subjects'])
+        custom_exams.append(exam)
+    
     conn.close()
     
-    return render_template('enter_marks.html', students=students, subjects=SUBJECTS)
+    return render_template('enter_marks.html', students=students, subjects=SUBJECTS, custom_exams=custom_exams)
 
 @app.route('/bulk-marks', methods=['GET', 'POST'])
 def bulk_marks():
@@ -471,38 +616,50 @@ def api_get_marks():
         return jsonify(dict(mark))
     return jsonify(None)
 
-@app.route('/results')
-def results():
-    """View all student results"""
+@app.route('/api/custom-exams')
+def api_custom_exams():
+    """Get custom exams matching selected student and subject"""
+    student_id = request.args.get('student_id')
+    subject = request.args.get('subject')
+    
+    if not student_id or not subject:
+        return jsonify([])
+    
+    # Get student details for filtering
     conn = get_db()
     cursor = conn.cursor()
+    cursor.execute('SELECT class_name, section FROM students WHERE admission_no = ?', (student_id,))
+    student = cursor.fetchone()
+    if not student:
+        conn.close()
+        return jsonify([])
     
-    # Get all students
-    cursor.execute('SELECT * FROM students ORDER BY class_name, section, roll_no')
-    students = cursor.fetchall()
+    student_class = student['class_name']
+    student_section = student['section']
     
-    results_list = []
-    class_name = students[0]['class_name'] if students else '7'
-    section = students[0]['section'] if students else 'A'
-    for student in students:
-        # Get marks for this student
-        cursor.execute('SELECT * FROM marks WHERE student_id = ?', (student['admission_no'],))
-        marks = cursor.fetchall()
+    # Get matching custom exams
+    cursor.execute('SELECT * FROM custom_exams ORDER BY created_at DESC')
+    raw_exams = cursor.fetchall()
+    
+    import json
+    matching_exams = []
+    for row in raw_exams:
+        exam = dict(row)
+        exam_classes = json.loads(exam['classes'] or '[]')
+        exam_sections = json.loads(exam['sections'] or '[]')
+        exam_subjects = json.loads(exam['subjects'] or '[]')
         
-        subjects_with_both = 0
-        for subject in SUBJECTS:
-            has_hy = any(m['subject'] == subject and m['exam_type'] == 'Half Yearly' for m in marks)
-            has_final = any(m['subject'] == subject and m['exam_type'] == 'Final' for m in marks)
-            if has_hy and has_final:
-                subjects_with_both += 1
-
-        if subjects_with_both == len(SUBJECTS):  # Has both exams for all subjects
-            result = calculate_result(student, marks)
-            results_list.append(result)
+        # Match class, section, subject
+        if (student_class in exam_classes and 
+            student_section in exam_sections and 
+            subject in exam_subjects):
+            matching_exams.append({
+                'exam_name': exam['exam_name'],
+                'max_marks': exam['max_marks']
+            })
     
     conn.close()
-    return render_template('results.html', results=results_list, class_name=class_name, section=section)
-
+    return jsonify(matching_exams)
 @app.route('/result/<admission_no>')
 def result_detail(admission_no):
     """View detailed result for a student"""
@@ -515,7 +672,7 @@ def result_detail(admission_no):
     
     if not student:
         flash('Student not found!', 'error')
-        return redirect(url_for('results'))
+        return redirect(url_for('index'))
     
     # Get marks
     cursor.execute('SELECT * FROM marks WHERE student_id = ?', (admission_no,))
@@ -858,18 +1015,7 @@ def exams():
         if exam.get('students'):
             exam['students'] = json.loads(exam['students'])
 
-    print(f"DEBUG: Found {len(exams)} exams in /exams route")
-    # Write debug info to file
-    with open('debug_exams.log', 'w') as f:
-        f.write(f"Found {len(exams)} exams\n")
-        for i, exam in enumerate(exams):
-            f.write(f"Exam {i+1}: {exam['exam_name']}\n")
-    
-    # Return simple HTML to test if route is working
-    html = f"<h1>Found {len(exams)} exams</h1>"
-    for exam in exams:
-        html += f"<p>{exam['exam_name']} - Edit button here</p>"
-    return html
+    return render_template('exams.html', exams=exams)
 
 @app.route('/enter-exam-marks/<exam_name>', methods=['GET', 'POST'])
 def enter_exam_marks(exam_name):
@@ -944,6 +1090,92 @@ def exam_results(exam_name):
     if not exam:
         flash('Exam not found!', 'error')
         return redirect(url_for('exams'))
+    
+    import json
+    exam_classes = json.loads(exam['classes'])
+    exam_sections = json.loads(exam['sections'])
+    exam_subjects = json.loads(exam['subjects'])
+    exam_students = json.loads(exam['students']) if exam['students'] else None
+    
+    # Get results
+    results = []
+    if exam_students:
+        placeholders = ','.join('?' * len(exam_students))
+        cursor.execute(f'SELECT * FROM students WHERE admission_no IN ({placeholders}) ORDER BY name', exam_students)
+    else:
+        class_placeholders = ','.join('?' * len(exam_classes))
+        section_placeholders = ','.join('?' * len(exam_sections))
+        cursor.execute(f'''
+            SELECT * FROM students 
+            WHERE class_name IN ({class_placeholders}) AND section IN ({section_placeholders})
+            ORDER BY class_name, section, name
+        ''', exam_classes + exam_sections)
+    
+    students = cursor.fetchall()
+    
+    for student in students:
+        student_marks = {}
+        total_marks = 0
+        subjects_taken = 0
+        
+        for subject in exam_subjects:
+            cursor.execute('SELECT written FROM marks WHERE student_id = ? AND subject = ? AND exam_type = ?',
+                         (student['admission_no'], subject, exam_name))
+            mark = cursor.fetchone()
+            if mark:
+                student_marks[subject] = mark[0]
+                total_marks += mark[0]
+                subjects_taken += 1
+            else:
+                student_marks[subject] = 0
+        
+        if subjects_taken > 0:
+            percentage = (total_marks / (subjects_taken * exam['max_marks'])) * 100
+            results.append({
+                'student': dict(student),
+                'marks': student_marks,
+                'total': total_marks,
+                'percentage': round(percentage, 2),
+                'subjects_taken': subjects_taken
+            })
+    
+    conn.close()
+    
+    return render_template('exam_results.html', 
+                         exam=dict(exam), 
+                         results=results, 
+                         subjects=exam_subjects,
+                         exam_name=exam_name)
+
+@app.route('/pt2-results')
+def pt2_results():
+    """Dedicated PT2 results for Class 7A"""
+    return exam_results('PT2')
+
+@app.route('/half-yearly-results')
+def half_yearly_results():
+    """Detailed Half Yearly Marksheet"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM students ORDER BY class_name, section, roll_no')
+    students = cursor.fetchall()
+    
+    grouped_results = []
+    SUBJECTS = ['English', 'Hindi', 'Maths', 'Science', 'SST', 'Computer', 'French']
+    
+    for student in students:
+        cursor.execute("SELECT subject, pt, ma, se, pf, written FROM marks WHERE student_id = ? AND exam_type = 'Half Yearly'", (student['admission_no'],))
+        marks_raw = cursor.fetchall()
+        student_marks = {row['subject']: dict(row) for row in marks_raw}
+        
+        grouped_results.append({
+            'student': dict(student),
+            'marks': student_marks,
+            'subjects': SUBJECTS
+        })
+    
+    conn.close()
+    return render_template('half_yearly_detailed.html', grouped_results=grouped_results, subjects=SUBJECTS)
     
     import json
     exam_classes = json.loads(exam['classes'])

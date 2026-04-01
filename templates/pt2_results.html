@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}PT2 Results - Class 7A - School Report Card{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="page-header">
+        <h1><i class="fas fa-star me-3 text-warning"></i>PT2 Results - Class 7A</h1>
+        <p class="mb-0">Periodic Test 2 | Max {{ exam.max_marks }} per subject | 7 Subjects</p>
+    </div>
+
+    {% if results %}
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>{{ results|length }}</h3>
+                    <p class="mb-0">Students</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>{{ avg_percentage|round(1) }}%</h3>
+                    <p class="mb-0">Class Average</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            {% set top_students = results|sort(attribute='percentage', reverse=true)|list[:3] %}
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-trophy me-2"></i>Top 3 Scorers</h6>
+                </div>
+                <div class="card-body">
+                    {% for i, student in [(forloop.counter, s) for s in top_students[:3]] %}
+                    <div class="d-flex justify-content-between">
+                        <span>{{ i }}. {{ student.student.name }}</span>
+                        <strong>{{ student.percentage }}%</strong>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>Class 7A PT2 Marksheet</h5>
+            <div>
+                <a href="{{ url_for('bulk_marks') }}#class7a" class="btn btn-sm btn-primary me-2">Enter Marks</a>
+                <a href="{{ url_for('exams') }}" class="btn btn-sm btn-secondary">All Exams</a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Rank</th>
+                            <th>Adm No</th>
+                            <th>Name</th>
+                            <th>Roll</th>
+                            {% for subject in subjects %}
+                            <th>{{ subject[:3] }}</th>
+                            {% endfor %}
+                            <th>Total ({{ subjects|length * exam.max_marks }})</th>
+                            <th>%</th>
+                            <th>Grade</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in results|sort(attribute='percentage', reverse=true) %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ result.student.admission_no }}</td>
+                            <td>{{ result.student.name }}</td>
+                            <td>{{ result.student.roll_no or '-' }}</td>
+                            {% for subject in subjects %}
+                            <td class="{% if result.marks[subject] %}{% else %}text-muted{% endif %}">
+                                {{ "%.1f"|format(result.marks[subject] or 0) }}
+                            </td>
+                            {% endfor %}
+                            <td><strong>{{ result.total|round(1) }}</strong></td>
+                            <td><strong class="{% if result.percentage >= 80 %}text-success{% elif result.percentage >= 60 %}text-warning{% else %}text-danger{% endif %}">{{ result.percentage|round(1) }}%</strong></td>
+                            <td>
+                                {% set grade_map = {'A1': 'bg-success', 'A2': 'bg-success', 'B1': 'bg-primary', 'B2': 'bg-primary', 'C1': 'bg-warning', 'C2': 'bg-warning', 'D': 'bg-secondary', 'E': 'bg-danger'} %}
+                                <span class="badge {{ grade_map.get(assign_grade(result.percentage), 'bg-secondary') }}">{{ assign_grade(result.percentage) }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>No PT2 results yet. <a href="{{ url_for('bulk_marks') }}#pt2">Enter marks for Class 7A</a>.
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function assign_grade(pct) {
+    if (pct >= 91) return 'A1';
+    if (pct >= 81) return 'A2';
+    if (pct >= 71) return 'B1';
+    if (pct >= 61) return 'B2';
+    if (pct >= 51) return 'C1';
+    if (pct >= 41) return 'C2';
+    if (pct >= 33) return 'D';
+    return 'E';
+}
+</script>
+{% endblock %}

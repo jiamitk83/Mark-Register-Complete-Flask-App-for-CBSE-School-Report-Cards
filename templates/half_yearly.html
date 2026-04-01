@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}Half Yearly Results - School Report Card{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-gradient-primary text-white text-center py-4">
+                    <h2 class="mb-0">
+                        <i class="fas fa-calculator me-3"></i>
+                        Half Yearly Result Calculator
+                    </h2>
+                    <small class="opacity-75">P5 + MA + SE + PF + HY = Total (Max 100)</small>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" novalidate>
+                        <div class="row g-4 mb-4">
+                            <!-- PT1 Input -->
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold fs-5 text-primary">
+                                    <i class="fas fa-star me-2 text-warning"></i>1. PT1 Marks (out of 100)
+                                </label>
+                                <input type="number" class="form-control form-control-lg border-primary" name="pt1_marks" 
+                                       id="pt1_marks" min="0" max="100" step="0.1" required
+                                       placeholder="Enter PT1 marks (0-100)"
+                                       value="{{ pt1_marks or '' }}">
+                                <div class="form-text">
+                                    <i class="fas fa-magic me-1 text-success"></i>
+                                    P5 = PT1 ÷ 5 (Auto-calculated, Readonly)
+                                </div>
+                            </div>
+                            
+                            <!-- P5 Auto Display -->
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold fs-5 text-success">
+                                    <i class="fas fa-robot me-2"></i>P5 (PT1 ÷ 5) <span class="badge bg-success">AUTO</span>
+                                </label>
+                                <input type="number" class="form-control form-control-lg bg-success bg-opacity-25 border-success" 
+                                       id="p5_display" readonly value="{% if pt1_marks %}{{ (pt1_marks / 5)|round(1) }}{% endif %}"
+                                       style="font-size: 1.5rem; font-weight: bold;">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold fs-5">
+                                    <i class="fas fa-book-open me-2 text-info"></i>2. MA (Max 5)
+                                </label>
+                                <input type="number" class="form-control form-control-lg" name="ma" id="ma" 
+                                       min="0" max="5" step="0.1" required value="{{ ma or '' }}">
+                                <div class="form-text">Multiple Assessment (0-5)</div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold fs-5">
+                                    <i class="fas fa-lightbulb me-2 text-warning"></i>3. SE (Max 5)
+                                </label>
+                                <input type="number" class="form-control form-control-lg" name="se" id="se" 
+                                       min="0" max="5" step="0.1" required value="{{ se or '' }}">
+                                <div class="form-text">Subject Enrichment (0-5)</div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold fs-5">
+                                    <i class="fas fa-folder me-2 text-secondary"></i>4. PF (Max 5)
+                                </label>
+                                <input type="number" class="form-control form-control-lg" name="pf" id="pf" 
+                                       min="0" max="5" step="0.1" required value="{{ pf or '' }}">
+                                <div class="form-text">Portfolio (0-5)</div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold fs-5">
+                                    <i class="fas fa-pen-fancy me-2 text-danger"></i>5. HY Exam (Max 80)
+                                </label>
+                                <input type="number" class="form-control form-control-lg" name="hy" id="hy" 
+                                       min="0" max="80" step="0.1" required value="{{ hy or '' }}">
+                                <div class="form-text">Half Yearly Written Exam (0-80)</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Calculate Button -->
+                        <div class="text-center mb-4">
+                            <button type="submit" class="btn btn-primary btn-lg px-5 py-3 shadow-lg">
+                                <i class="fas fa-calculator me-3"></i>
+                                Calculate Half Yearly Result
+                            </button>
+                        </div>
+                    </form>
+                    
+                    {% if pt1_marks is not none %}
+                    <!-- Results Display -->
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <div class="card border-start border-success border-5 shadow h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-calculator fa-2x text-success mb-2"></i>
+                                    <h3 class="text-success fw-bold">{{ total|round(1) }}</h3>
+                                    <p class="mb-0 fs-5"><strong>/ 100</strong></p>
+                                    <small class="text-muted">Total Marks</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-start border-info border-5 shadow h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
+                                    <h3 class="text-info fw-bold">{{ percentage|round(1) }}%</h3>
+                                    <p class="mb-0 fs-5"><strong>Percentage</strong></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-start border-warning border-5 shadow h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-award fa-2x text-warning mb-2"></i>
+                                    <h3 class="text-warning fw-bold">{{ grade }}</h3>
+                                    <p class="mb-0 fs-5"><strong>Grade</strong></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Breakdown Table -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card shadow">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">Component Breakdown</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Component</th>
+                                                    <th>Marks Obtained</th>
+                                                    <th>Max Marks</th>
+                                                    <th>Weight (%)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><strong>P5 (PT1/5)</strong></td>
+                                                    <td><strong>{{ p5|round(1) }}</strong></td>
+                                                    <td>20</td>
+                                                    <td>20%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>MA</td>
+                                                    <td>{{ ma|round(1) }}</td>
+                                                    <td>5</td>
+                                                    <td>15%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>SE</td>
+                                                    <td>{{ se|round(1) }}</td>
+                                                    <td>5</td>
+                                                    <td>15%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>PF</td>
+                                                    <td>{{ pf|round(1) }}</td>
+                                                    <td>5</td>
+                                                    <td>15%</td>
+                                                </tr>
+                                                <tr class="table-primary">
+                                                    <td><strong>HY Exam</strong></td>
+                                                    <td><strong>{{ hy|round(1) }}</strong></td>
+                                                    <td>80</td>
+                                                    <td>35%</td>
+                                                </tr>
+                                                <tr class="table-success fw-bold">
+                                                    <td colspan="3"><strong>TOTAL</strong></td>
+                                                    <td><strong>{{ total|round(1) }} / 100</strong></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = ['pt1_marks', 'ma', 'se', 'pf', 'hy'];
+    inputs.forEach(id => {
+        document.getElementById(id).addEventListener('input', updateLiveTotal);
+    });
+});
+
+function updateLiveTotal() {
+    const pt1 = parseFloat(document.getElementById('pt1_marks').value) || 0;
+    const ma = parseFloat(document.getElementById('ma').value) || 0;
+    const se = parseFloat(document.getElementById('se').value) || 0;
+    const pf = parseFloat(document.getElementById('pf').value) || 0;
+    const hy = parseFloat(document.getElementById('hy').value) || 0;
+    
+    const p5 = pt1 / 5;
+    document.getElementById('p5_display').value = p5.toFixed(1);
+    
+    const total = p5 + ma + se + pf + hy;
+    
+    // Real-time validation
+    validateField('ma', ma, 5);
+    validateField('se', se, 5);
+    validateField('pf', pf, 5);
+    validateField('hy', hy, 80);
+    
+    // Visual feedback
+    const totalDisplay = document.querySelector('.card-body .fs-5');
+    if (totalDisplay) {
+        totalDisplay.innerHTML = `<strong>${total.toFixed(1)} / 100</strong>`;
+        totalDisplay.parentElement.style.color = total > 100 ? 'red' : 'green';
+    }
+}
+
+function validateField(id, value, max) {
+    const field = document.getElementById(id);
+    if (value > max) {
+        field.classList.add('is-invalid');
+        field.setCustomValidity(`Max ${max}`);
+    } else {
+        field.classList.remove('is-invalid');
+        field.setCustomValidity('');
+    }
+}
+</script>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+.is-invalid {
+    border-color: #dc3545 !important;
+}
+</style>
+{% endblock %}

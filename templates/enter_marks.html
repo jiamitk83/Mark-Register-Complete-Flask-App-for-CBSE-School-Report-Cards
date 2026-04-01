@@ -13,112 +13,142 @@
         <div class="card-body">
             <form method="POST" action="{{ url_for('enter_marks') }}">
                 <div class="row g-3 mb-4">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label for="student_id" class="form-label">Select Student <span class="text-danger">*</span></label>
-                        <select class="form-select" id="student_id" name="student_id" required>
+                        <select class="form-select" id="student_id" name="student_id" required onchange="onSelectionChanged()">
                             <option value="">Select Student</option>
                             {% for student in students %}
-                            <option value="{{ student.admission_no }}">{{ student.name }} ({{ student.class_name }}-{{ student.section }})</option>
+                            <option value="{{ student.admission_no }}" data-class="{{ student.class_name }}" data-section="{{ student.section }}">{{ student.name }} ({{ student.class_name }}-{{ student.section }})</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label for="subject" class="form-label">Select Subject <span class="text-danger">*</span></label>
-                        <select class="form-select" id="subject" name="subject" required>
+                        <select class="form-select" id="subject" name="subject" required onchange="onSelectionChanged()">
                             <option value="">Select Subject</option>
                             {% for subject in subjects %}
                             <option value="{{ subject }}">{{ subject }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-4 d-flex align-items-end">
+                    <div class="col-md-3">
+                        <label for="exam_type" class="form-label">Exam Type <span class="text-danger">*</span></label>
+                        <select class="form-select" id="exam_type" name="exam_type" required onchange="onSelectionChanged()">
+                            <option value="Half Yearly">Half Yearly</option>
+                            <option value="Final">Final</option>
+                            <option value="Both">Both</option>
+                            {% if custom_exams %}
+                            <optgroup label="Custom Exams">
+                                {% for custom in custom_exams %}
+                                <option value="{{ custom.exam_name }}" data-max-marks="{{ custom.max_marks }}">{{ custom.exam_name }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
                         <button type="button" class="btn btn-info w-100" onclick="loadStudentMarks()">
-                            <i class="fas fa-search me-2"></i>Load Existing Marks
+                            <i class="fas fa-search me-2"></i>Load Marks
                         </button>
                     </div>
                 </div>
 
-                <!-- Half Yearly Exam -->
-                <div class="card bg-light mb-4" id="half-yearly-card">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Half Yearly Exam (40% Weight)</h5>
-                    </div>
-                    <div class="card-body">
-                        <!-- Regular subjects -->
-                        <div class="row g-3 regular-fields">
-                            <div class="col-md-2">
-                                <label class="form-label">PT (5)</label>
-                                <input type="number" class="form-control" name="hy_pt" min="0" max="5" step="0.1" value="0">
+                <!-- Dynamic Exam Fields Container -->
+                <div id="examFieldsContainer">
+                    <!-- Half Yearly Card -->
+                    <div class="card bg-light mb-4" id="half-yearly-card" style="display: none;">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Half Yearly Exam (40% Weight)</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3 regular-fields">
+                                <div class="col-md-2">
+                                    <label class="form-label">PT (5)</label>
+                                    <input type="number" class="form-control" name="hy_pt" min="0" max="5" step="0.1" value="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">MA (5)</label>
+                                    <input type="number" class="form-control" name="hy_ma" min="0" max="5" step="0.1" value="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">SE (5)</label>
+                                    <input type="number" class="form-control" name="hy_se" min="0" max="5" step="0.1" value="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">PF (5)</label>
+                                    <input type="number" class="form-control" name="hy_pf" min="0" max="5" step="0.1" value="0">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Written (80)</label>
+                                    <input type="number" class="form-control" name="hy_written" min="0" max="80" step="0.1" value="0">
+                                </div>
                             </div>
-                            <div class="col-md-2">
-                                <label class="form-label">MA (5)</label>
-                                <input type="number" class="form-control" name="hy_ma" min="0" max="5" step="0.1" value="0">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">SE (5)</label>
-                                <input type="number" class="form-control" name="hy_se" min="0" max="5" step="0.1" value="0">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">PF (5)</label>
-                                <input type="number" class="form-control" name="hy_pf" min="0" max="5" step="0.1" value="0">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Written (80)</label>
-                                <input type="number" class="form-control" name="hy_written" min="0" max="80" step="0.1" value="0">
+                            <div class="row g-3 computer-fields" style="display: none;">
+                                <div class="col-md-6">
+                                    <label class="form-label">Theory (70)</label>
+                                    <input type="number" class="form-control" name="hy_theory" min="0" max="70" step="0.1" value="0">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Practical (30)</label>
+                                    <input type="number" class="form-control" name="hy_practical" min="0" max="30" step="0.1" value="0">
+                                </div>
                             </div>
                         </div>
-                        <!-- Computer subjects -->
-                        <div class="row g-3 computer-fields" style="display: none;">
-                            <div class="col-md-6">
-                                <label class="form-label">Theory (70)</label>
-                                <input type="number" class="form-control" name="hy_theory" min="0" max="70" step="0.1" value="0">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Practical (30)</label>
-                                <input type="number" class="form-control" name="hy_practical" min="0" max="30" step="0.1" value="0">
-                            </div>
-                        </div>
                     </div>
-                </div>
 
-                <!-- Final Exam -->
-                <div class="card bg-light mb-4" id="final-card">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0"><i class="fas fa-calendar-check me-2"></i>Final Exam (60% Weight)</h5>
-                    </div>
-                    <div class="card-body">
-                        <!-- Regular subjects -->
-                        <div class="row g-3 regular-fields">
-                            <div class="col-md-2">
-                                <label class="form-label">PT (5)</label>
-                                <input type="number" class="form-control" name="final_pt" min="0" max="5" step="0.1" value="0">
+                    <!-- Final Card -->
+                    <div class="card bg-light mb-4" id="final-card" style="display: none;">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="fas fa-calendar-check me-2"></i>Final Exam (60% Weight)</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3 regular-fields">
+                                <div class="col-md-2">
+                                    <label class="form-label">PT (5)</label>
+                                    <input type="number" class="form-control" name="final_pt" min="0" max="5" step="0.1" value="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">MA (5)</label>
+                                    <input type="number" class="form-control" name="final_ma" min="0" max="5" step="0.1" value="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">SE (5)</label>
+                                    <input type="number" class="form-control" name="final_se" min="0" max="5" step="0.1" value="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">PF (5)</label>
+                                    <input type="number" class="form-control" name="final_pf" min="0" max="5" step="0.1" value="0">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Written (80)</label>
+                                    <input type="number" class="form-control" name="final_written" min="0" max="80" step="0.1" value="0">
+                                </div>
                             </div>
-                            <div class="col-md-2">
-                                <label class="form-label">MA (5)</label>
-                                <input type="number" class="form-control" name="final_ma" min="0" max="5" step="0.1" value="0">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">SE (5)</label>
-                                <input type="number" class="form-control" name="final_se" min="0" max="5" step="0.1" value="0">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">PF (5)</label>
-                                <input type="number" class="form-control" name="final_pf" min="0" max="5" step="0.1" value="0">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Written (80)</label>
-                                <input type="number" class="form-control" name="final_written" min="0" max="80" step="0.1" value="0">
+                            <div class="row g-3 computer-fields" style="display: none;">
+                                <div class="col-md-6">
+                                    <label class="form-label">Theory (70)</label>
+                                    <input type="number" class="form-control" name="final_theory" min="0" max="70" step="0.1" value="0">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Practical (30)</label>
+                                    <input type="number" class="form-control" name="final_practical" min="0" max="30" step="0.1" value="0">
+                                </div>
                             </div>
                         </div>
-                        <!-- Computer subjects -->
-                        <div class="row g-3 computer-fields" style="display: none;">
-                            <div class="col-md-6">
-                                <label class="form-label">Theory (70)</label>
-                                <input type="number" class="form-control" name="final_theory" min="0" max="70" step="0.1" value="0">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Practical (30)</label>
-                                <input type="number" class="form-control" name="final_practical" min="0" max="30" step="0.1" value="0">
+                    </div>
+
+                    <!-- Custom Exam Card -->
+                    <div class="card bg-light mb-4" id="custom-card" style="display: none;">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0"><i class="fas fa-star me-2"></i>Custom Exam Marks</h5>
+                            <small id="customExamMax" class="form-text">Max marks will show here</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="marks" class="form-label">Marks</label>
+                                    <input type="number" class="form-control form-control-lg" id="marks" name="marks" min="0" step="0.1" value="0">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -136,6 +166,68 @@
 
 {% block extra_js %}
 <script>
+const customExamData = {{ custom_exams | tojson }};
+
+function parseJsonArray(value) {
+    if (Array.isArray(value)) return value;
+    try {
+        return value ? JSON.parse(value) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function getCustomExamConfig(name) {
+    return customExamData.find(exam => exam.exam_name === name);
+}
+
+function onSelectionChanged() {
+    toggleSubjectFields();
+    updateExamTypeVisibility();
+    updateCustomMaxMarks();
+}
+
+function updateExamTypeVisibility() {
+    const examType = document.getElementById('exam_type').value;
+    const hyCard = document.getElementById('half-yearly-card');
+    const finalCard = document.getElementById('final-card');
+    const customCard = document.getElementById('custom-card');
+    
+    // Reset all
+    hyCard.style.display = 'none';
+    finalCard.style.display = 'none';
+    customCard.style.display = 'none';
+    
+    if (examType === 'Half Yearly' || examType === 'Both') {
+        hyCard.style.display = 'block';
+    }
+    if (examType === 'Final' || examType === 'Both') {
+        finalCard.style.display = 'block';
+    }
+    if (!['Half Yearly', 'Final', 'Both'].includes(examType)) {
+        customCard.style.display = 'block';
+    }
+}
+
+function updateCustomMaxMarks() {
+    const examType = document.getElementById('exam_type').value;
+    const customMaxEl = document.getElementById('customExamMax');
+    const marksInput = document.getElementById('marks');
+    
+    if (!['Half Yearly', 'Final', 'Both'].includes(examType)) {
+        const customExam = getCustomExamConfig(examType);
+        if (customExam) {
+            const maxMarks = customExam.max_marks;
+            customMaxEl.textContent = `Max marks: ${maxMarks}`;
+            marksInput.max = maxMarks;
+            marksInput.title = `Max: ${maxMarks}`;
+        } else {
+            customMaxEl.textContent = 'Custom exam not found';
+            marksInput.max = 100;
+        }
+    }
+}
+
 // Function to toggle between regular and computer fields
 function toggleSubjectFields() {
     const subject = document.getElementById('subject').value.toLowerCase();
@@ -151,52 +243,47 @@ function toggleSubjectFields() {
     }
 }
 
-// Add event listener to subject dropdown
-document.getElementById('subject').addEventListener('change', toggleSubjectFields);
+// Event listeners
+document.getElementById('student_id').addEventListener('change', onSelectionChanged);
+document.getElementById('subject').addEventListener('change', onSelectionChanged);
+document.getElementById('exam_type').addEventListener('change', onSelectionChanged);
 
 // Initialize on page load
-document.addEventListener('DOMContentLoaded', toggleSubjectFields);
+document.addEventListener('DOMContentLoaded', function() {
+    onSelectionChanged();
+});
 
 async function loadStudentMarks() {
     const studentId = document.getElementById('student_id').value;
     const subject = document.getElementById('subject').value;
+    const examType = document.getElementById('exam_type').value;
     
     if (!studentId || !subject) {
-        alert('Please select both student and subject');
+        alert('Please select student, subject, and exam type');
         return;
     }
     
-    // Load Half Yearly marks
-    const hyResponse = await fetch(`/api/get-marks?student_id=${studentId}&subject=${subject}&exam_type=Half Yearly`);
-    const hyData = await hyResponse.json();
+    // Load specific exam marks
+    const response = await fetch(`/api/get-marks?student_id=${studentId}&subject=${subject}&exam_type=${examType}`);
+    const data = await response.json();
     
-    if (hyData) {
-        if (subject.toLowerCase() === 'computer') {
-            document.querySelector('input[name="hy_theory"]').value = hyData.theory || 0;
-            document.querySelector('input[name="hy_practical"]').value = hyData.practical || 0;
+    if (data) {
+        if (['Half Yearly', 'Final'].includes(examType) || examType === 'Both') {
+            // Standard fields (handle based on prefix)
+            const prefix = examType.toLowerCase() === 'final' ? 'final_' : 'hy_';
+            if (subject.toLowerCase() === 'computer') {
+                document.querySelector(`input[name="${prefix}theory"]`).value = data.theory || 0;
+                document.querySelector(`input[name="${prefix}practical"]`).value = data.practical || 0;
+            } else {
+                document.querySelector(`input[name="${prefix}pt"]`).value = data.pt || 0;
+                document.querySelector(`input[name="${prefix}ma"]`).value = data.ma || 0;
+                document.querySelector(`input[name="${prefix}se"]`).value = data.se || 0;
+                document.querySelector(`input[name="${prefix}pf"]`).value = data.pf || 0;
+                document.querySelector(`input[name="${prefix}written"]`).value = data.written || 0;
+            }
         } else {
-            document.querySelector('input[name="hy_pt"]').value = hyData.pt || 0;
-            document.querySelector('input[name="hy_ma"]').value = hyData.ma || 0;
-            document.querySelector('input[name="hy_se"]').value = hyData.se || 0;
-            document.querySelector('input[name="hy_pf"]').value = hyData.pf || 0;
-            document.querySelector('input[name="hy_written"]').value = hyData.written || 0;
-        }
-    }
-    
-    // Load Final marks
-    const finalResponse = await fetch(`/api/get-marks?student_id=${studentId}&subject=${subject}&exam_type=Final`);
-    const finalData = await finalResponse.json();
-    
-    if (finalData) {
-        if (subject.toLowerCase() === 'computer') {
-            document.querySelector('input[name="final_theory"]').value = finalData.theory || 0;
-            document.querySelector('input[name="final_practical"]').value = finalData.practical || 0;
-        } else {
-            document.querySelector('input[name="final_pt"]').value = finalData.pt || 0;
-            document.querySelector('input[name="final_ma"]').value = finalData.ma || 0;
-            document.querySelector('input[name="final_se"]').value = finalData.se || 0;
-            document.querySelector('input[name="final_pf"]').value = finalData.pf || 0;
-            document.querySelector('input[name="final_written"]').value = finalData.written || 0;
+            // Custom exam
+            document.getElementById('marks').value = data.written || 0;
         }
     }
 }
