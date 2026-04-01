@@ -378,7 +378,6 @@ def students():
 @app.route('/delete-student/<admission_no>', methods=['POST'])
 def delete_student(admission_no):
     """Delete a student"""
-    # TODO: verify CSRF token here if using Flask-WTF/Flask-SeaSurf
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('DELETE FROM students WHERE admission_no = ?', (admission_no,))
@@ -387,6 +386,57 @@ def delete_student(admission_no):
     conn.close()
     flash('Student deleted successfully!', 'success')
     return redirect(url_for('students'))
+
+@app.route('/edit-student/<admission_no>', methods=['GET', 'POST'])
+def edit_student(admission_no):
+    """Edit student details"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip().upper()
+        class_name = request.form.get('class_name', '').strip()
+        section = request.form.get('section', '').strip().upper()
+        roll_no_str = request.form.get('roll_no', '')
+        father_name = request.form.get('father_name', '').strip().upper()
+        mother_name = request.form.get('mother_name', '').strip().upper()
+        dob = request.form.get('dob', '').strip()
+        
+        roll_no = int(roll_no_str) if roll_no_str.isdigit() else None
+        
+        # Validation
+        if not name or not class_name or not section:
+            flash('Name, Class, and Section are required!', 'error')
+            cursor.execute('SELECT * FROM students WHERE admission_no = ?', (admission_no,))
+            student = cursor.fetchone()
+            conn.close()
+            return render_template('edit_student.html', student=dict(student))
+        
+        try:
+            cursor.execute(''' 
+                UPDATE students SET 
+                    name = ?, class_name = ?, section = ?, roll_no = ?, 
+                    father_name = ?, mother_name = ?, dob = ?
+                WHERE admission_no = ?
+            ''', (name, class_name, section, roll_no, father_name, mother_name, dob, admission_no))
+            conn.commit()
+            flash(f'Student "{name}" updated successfully!', 'success')
+        except sqlite3.Error as e:
+            flash(f'Error updating student: {str(e)}', 'error')
+        finally:
+            conn.close()
+        return redirect(url_for('students'))
+    
+    # GET: Show edit form
+    cursor.execute('SELECT * FROM students WHERE admission_no = ?', (admission_no,))
+    student = cursor.fetchone()
+    conn.close()
+    
+    if not student:
+        flash('Student not found!', 'error')
+        return redirect(url_for('students'))
+    
+    return render_template('edit_student.html', student=dict(student))
 
 @app.route('/enter-marks', methods=['GET', 'POST'])
 def enter_marks():

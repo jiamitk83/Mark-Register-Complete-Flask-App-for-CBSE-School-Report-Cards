@@ -1,12 +1,10 @@
-# Half Yearly Results Page
+# Student Edit/Delete Implementation
 
-**Approved**: Add /half-yearly-results like PT1
+## Completed (4/5)
+- [x] Create TODO.md
+- [x] Add Edit routes to app.py (GET/POST /edit-student/<admission_no>)
+- [x] Update students.html (Edit button btn-warning, fixed enter_marks link)
+- [x] Create templates/edit_student.html (full form)
 
-**Steps**:
-1. [ ] app.py - Add @app.route('/half-yearly-results')
-2. [ ] templates/half_yearly.html - Results table (copy exam_results.html)
-3. [ ] base.html - Navbar link
-4. [ ] index.html - Dashboard card
-
-**User confirmed YES**
-
+## Remaining (1/5)
+- [ ] Test & complete

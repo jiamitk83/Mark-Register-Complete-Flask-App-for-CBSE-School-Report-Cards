@@ -40,14 +40,17 @@
                             <td>{{ student.section }}</td>
                             <td>{{ student.father_name or '-' }}</td>
                             <td>
+
                                 <a href="{{ url_for('result_detail', admission_no=student.admission_no) }}" class="btn btn-sm btn-info" title="View Result" aria-label="View result for {{ student.admission_no }}">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{{ url_for('enter_marks', student=student.admission_no) }}" class="btn btn-sm btn-primary" title="Enter Marks" aria-label="Enter marks for {{ student.admission_no }}">
+                                <a href="{{ url_for('enter_marks') }}?student={{ student.admission_no }}" class="btn btn-sm btn-primary" title="Enter Marks" aria-label="Enter marks for {{ student.admission_no }}">
                                     <i class="fas fa-pen"></i>
                                 </a>
-                                <form action="{{ url_for('delete_student', admission_no=student.admission_no) }}" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this student?');">
-                                    {{ csrf_token() if csrf_token is defined else '' }}
+                                <a href="{{ url_for('edit_student', admission_no=student.admission_no) }}" class="btn btn-sm btn-warning" title="Edit" aria-label="Edit student {{ student.admission_no }}">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form action="{{ url_for('delete_student', admission_no=student.admission_no) }}" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete {{ student.name }} ({{ student.admission_no }}) and all their marks?');">
                                     <button type="submit" class="btn btn-sm btn-danger" title="Delete" aria-label="Delete student {{ student.admission_no }}">
                                         <i class="fas fa-trash"></i>
                                     </button>
