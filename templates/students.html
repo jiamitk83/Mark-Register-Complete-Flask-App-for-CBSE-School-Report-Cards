@@ -50,7 +50,7 @@
                                 <a href="{{ url_for('edit_student', admission_no=student.admission_no) }}" class="btn btn-sm btn-warning" title="Edit" aria-label="Edit student {{ student.admission_no }}">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <form action="{{ url_for('delete_student', admission_no=student.admission_no) }}" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete {{ student.name }} ({{ student.admission_no }}) and all their marks?');">
+                                <form action="{{ url_for('delete_student', admission_no=student.admission_no) }}" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete {{ student.name|tojson }} ({{ student.admission_no|tojson }}) and all their marks?');">
                                     <button type="submit" class="btn btn-sm btn-danger" title="Delete" aria-label="Delete student {{ student.admission_no }}">
                                         <i class="fas fa-trash"></i>
                                     </button>

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Final Exam Marksheet - Detailed{% endblock %}
+
+{% block content %}
+
+<div class="fade-in">
+    <div class="page-header">
+        <h1><i class="fas fa-file-alt me-3"></i>Final Exam Marksheet - Detailed Breakdown</h1>
+        <p class="mb-0">PT2/5 + MA + SE + PF + FE (Written) per subject | Class-wise</p>
+    </div>
+
+    {% if grouped_results %}
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-sm">
+                    <thead class="table-success">
+                        <tr>
+                            <th rowspan="2">S.R.</th>
+                            <th rowspan="2">Student Name</th>
+                            {% for subject in subjects %}
+                            <th colspan="6">{{ subject }}</th>
+                            {% endfor %}
+                            <th rowspan="2">Grand Total</th>
+                            <th rowspan="2">%</th>
+                            <th rowspan="2">Grade</th>
+                        </tr>
+                        <tr>
+                            {% for subject in subjects %}
+                            <th>P5</th>
+                            <th>MA</th>
+                            <th>SE</th>
+                            <th>PF</th>
+                            <th>FE</th>
+                            <th>TOTAL</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in grouped_results %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ result.student.name }}</td>
+
+                            {% set grand_total = 0 %}
+
+                            {% for subject in subjects %}
+                            {% set marks = result.marks.get(subject, {}) %}
+
+                            {% set p5 = (marks.pt or 0) / 5 %}
+                            {% set ma = marks.ma or 0 %}
+                            {% set se = marks.se or 0 %}
+                            {% set pf = marks.pf or 0 %}
+                            {% set fe = marks.written or 0 %}
+
+                            {% set total = p5 + ma + se + pf + fe %}
+                            {% set grand_total = grand_total + total %}
+
+                            <td>{{ p5|round(1) }}</td>
+                            <td>{{ ma|round(1) }}</td>
+                            <td>{{ se|round(1) }}</td>
+                            <td>{{ pf|round(1) }}</td>
+                            <td>{{ fe|round(1) }}</td>
+                            <td class="fw-bold">{{ total|round(1) }}</td>
+
+                            {% endfor %}
+
+                            <td class="fw-bold">{{ grand_total|round(1) }}</td>
+
+                            {% set percentage = (grand_total / (subjects|length * 100)) * 100 %}
+                            <td class="fw-bold">{{ percentage|round(1) }}%</td>
+
+                            <td>
+                                {% if percentage >= 91 %}A1
+                                {% elif percentage >= 81 %}A2
+                                {% elif percentage >= 71 %}B1
+                                {% elif percentage >= 61 %}B2
+                                {% elif percentage >= 51 %}C1
+                                {% elif percentage >= 41 %}C2
+                                {% elif percentage >= 33 %}D
+                                {% else %}E
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        No Final Exam marks data available. 
+        <a href="{{ url_for('bulk_marks') }}">Enter Final marks first</a>.
+    </div>
+    {% endif %}
+
+    <div class="mt-4">
+        <a href="{{ url_for('bulk_marks') }}" class="btn btn-success btn-lg me-2">
+            <i class="fas fa-plus me-2"></i>Enter Final Marks
+        </a>
+        <a href="{{ url_for('half_yearly_results') }}" class="btn btn-primary btn-lg">
+            <i class="fas fa-arrow-left me-2"></i>Half Yearly Results
+        </a>
+    </div>
+
+</div>
+{% endblock %}

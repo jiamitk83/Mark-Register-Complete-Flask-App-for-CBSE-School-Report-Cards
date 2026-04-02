@@ -10,7 +10,7 @@ with open('debug_startup.log', 'a') as f:
     f.write("Imports done\n")
 import sqlite3
 import os
-from datetime import datetime
+from datetime import datetime, date
 
 with open('debug_startup.log', 'a') as f:
     f.write("Creating Flask app\n")
@@ -106,6 +106,16 @@ def init_db():
             subjects TEXT NOT NULL, -- JSON array of subjects
             students TEXT,          -- JSON array of student IDs (optional, if not specified use all matching criteria)
             max_marks REAL NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Subjects table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS subjects (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            active INTEGER DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -269,27 +279,6 @@ def delete_subject(subject_id):
     conn.close()
     return redirect(url_for('subjects_list'))
 
-def init_db():
-    """Initialize database with CBSE schema"""
-    conn = get_db()
-    cursor = conn.cursor()
-    
-    # Subjects table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS subjects (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE NOT NULL,
-            active INTEGER DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # [EXISTING TABLES - students, marks, custom_exams - UNCHANGED]
-    # ... rest of init_db remains the same ...
-
-    conn.commit()
-    conn.close()
-
 # ==================== ROUTES ====================
 
 @app.route('/')
@@ -380,11 +369,25 @@ def delete_student(admission_no):
     """Delete a student"""
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM students WHERE admission_no = ?', (admission_no,))
-    cursor.execute('DELETE FROM marks WHERE student_id = ?', (admission_no,))
-    conn.commit()
-    conn.close()
-    flash('Student deleted successfully!', 'success')
+    
+    # Check if student exists
+    cursor.execute('SELECT 1 FROM students WHERE admission_no = ?', (admission_no,))
+    if not cursor.fetchone():
+        conn.close()
+        flash('Student not found!', 'error')
+        return redirect(url_for('students'))
+    
+    try:
+        cursor.execute('DELETE FROM students WHERE admission_no = ?', (admission_no,))
+        cursor.execute('DELETE FROM marks WHERE student_id = ?', (admission_no,))
+        conn.commit()
+        flash('Student deleted successfully!', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error deleting student: {str(e)}', 'error')
+    finally:
+        conn.close()
+    
     return redirect(url_for('students'))
 
 @app.route('/edit-student/<admission_no>', methods=['GET', 'POST'])
@@ -409,6 +412,10 @@ def edit_student(admission_no):
             flash('Name, Class, and Section are required!', 'error')
             cursor.execute('SELECT * FROM students WHERE admission_no = ?', (admission_no,))
             student = cursor.fetchone()
+            if not student:
+                conn.close()
+                flash('Student not found!', 'error')
+                return redirect(url_for('students'))
             conn.close()
             return render_template('edit_student.html', student=dict(student))
         
@@ -436,7 +443,7 @@ def edit_student(admission_no):
         flash('Student not found!', 'error')
         return redirect(url_for('students'))
     
-    return render_template('edit_student.html', student=dict(student))
+    return render_template('edit_student.html', student=dict(student), today=date.today().isoformat())
 
 @app.route('/enter-marks', methods=['GET', 'POST'])
 def enter_marks():
@@ -579,38 +586,58 @@ def bulk_marks():
             conn.close()
             return redirect(url_for('bulk_marks'))
 
-        def save_computer(student_id, exam_label):
-            theory = clamp_mark(request.form.get(f'{exam_label.lower()}_theory_{student_id}'), 70)
-            practical = clamp_mark(request.form.get(f'{exam_label.lower()}_practical_{student_id}'), 30)
-            cursor.execute('''
-                INSERT OR REPLACE INTO marks (student_id, subject, exam_type, theory, practical)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (student_id, subject, exam_label, theory, practical))
-
-        def save_regular(student_id, exam_label):
-            pt = clamp_mark(request.form.get(f'{exam_label.lower()}_pt_{student_id}'), 5)
-            ma = clamp_mark(request.form.get(f'{exam_label.lower()}_ma_{student_id}'), 5)
-            se = clamp_mark(request.form.get(f'{exam_label.lower()}_se_{student_id}'), 5)
-            pf = clamp_mark(request.form.get(f'{exam_label.lower()}_pf_{student_id}'), 5)
-            written = clamp_mark(request.form.get(f'{exam_label.lower()}_written_{student_id}'), 80)
-            cursor.execute('''
-                INSERT OR REPLACE INTO marks (student_id, subject, exam_type, pt, ma, se, pf, written)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (student_id, subject, exam_label, pt, ma, se, pf, written))
-
+        saved_count = 0
+        print(f"Bulk save: {len(students)} students, {subject}, {exam_type}")
+        
         for student in students:
             student_id = student['admission_no']
 
             if subject.lower() == 'computer':
                 if exam_type in ['Half Yearly', 'Both']:
-                    save_computer(student_id, 'Half Yearly')
+                    theory = clamp_mark(request.form.get(f'hy_theory_{student_id}'), 70)
+                    practical = clamp_mark(request.form.get(f'hy_practical_{student_id}'), 30)
+                    cursor.execute('''
+                        INSERT OR REPLACE INTO marks (student_id, subject, exam_type, theory, practical)
+                        VALUES (?, ?, ?, ?, ?)
+                    ''', (student_id, subject, 'Half Yearly', theory, practical))
+                    saved_count += 1
                 if exam_type in ['Final', 'Both']:
-                    save_computer(student_id, 'Final')
+                    theory = clamp_mark(request.form.get(f'final_theory_{student_id}'), 70)
+                    practical = clamp_mark(request.form.get(f'final_practical_{student_id}'), 30)
+                    cursor.execute('''
+                        INSERT OR REPLACE INTO marks (student_id, subject, exam_type, theory, practical)
+                        VALUES (?, ?, ?, ?, ?)
+                    ''', (student_id, subject, 'Final', theory, practical))
+                    saved_count += 1
             else:
                 if exam_type in ['Half Yearly', 'Both']:
-                    save_regular(student_id, 'Half Yearly')
+                    pt = clamp_mark(request.form.get(f'hy_pt_{student_id}'), 5)
+                    ma = clamp_mark(request.form.get(f'hy_ma_{student_id}'), 5)
+                    se = clamp_mark(request.form.get(f'hy_se_{student_id}'), 5)
+                    pf = clamp_mark(request.form.get(f'hy_pf_{student_id}'), 5)
+                    written = clamp_mark(request.form.get(f'hy_written_{student_id}'), 80)
+                    cursor.execute('''
+                        INSERT OR REPLACE INTO marks (student_id, subject, exam_type, pt, ma, se, pf, written)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (student_id, subject, 'Half Yearly', pt, ma, se, pf, written))
+                    saved_count += 1
                 if exam_type in ['Final', 'Both']:
-                    save_regular(student_id, 'Final')
+                    pt = clamp_mark(request.form.get(f'final_pt_{student_id}'), 5)
+                    ma = clamp_mark(request.form.get(f'final_ma_{student_id}'), 5)
+                    se = clamp_mark(request.form.get(f'final_se_{student_id}'), 5)
+                    pf = clamp_mark(request.form.get(f'final_pf_{student_id}'), 5)
+                    written = clamp_mark(request.form.get(f'final_written_{student_id}'), 80)
+                    cursor.execute('''
+                        INSERT OR REPLACE INTO marks (student_id, subject, exam_type, pt, ma, se, pf, written)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (student_id, subject, 'Final', pt, ma, se, pf, written))
+                    saved_count += 1
+
+        print(f"Saved {saved_count} mark entries")
+        conn.commit()
+        flash(f'Bulk marks saved for Class {class_name} Section {section} ({subject}, {exam_type})! {saved_count} records updated.', 'success')
+        conn.close()
+        return redirect(url_for('bulk_marks'))
 
         conn.commit()
         flash(f'Bulk marks saved for Class {class_name} Section {section} ({subject}, {exam_type})!', 'success')
@@ -978,7 +1005,6 @@ def edit_exam(exam_name):
                   json.dumps(students) if students else None, max_marks, exam_name))
             conn.commit()
             flash(f'Exam "{exam_name_new}" updated successfully!', 'success')
-            conn.close()
             return redirect(url_for('exams'))
         except sqlite3.IntegrityError:
             flash('Exam name already exists!', 'error')
@@ -1051,6 +1077,7 @@ def debug_exams():
 @app.route('/exams')
 def exams():
     """View all custom exams"""
+    from datetime import datetime
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM custom_exams ORDER BY created_at DESC')
@@ -1064,6 +1091,20 @@ def exams():
         exam['subjects'] = json.loads(exam['subjects'])
         if exam.get('students'):
             exam['students'] = json.loads(exam['students'])
+        
+        # Convert created_at string to datetime object for strftime
+        created_at_str = exam.get('created_at')
+        if created_at_str:
+            try:
+                # Handle both 'YYYY-MM-DD HH:MM:SS' and 'YYYY-MM-DD'
+                if len(created_at_str) > 10:
+                    exam['created_at'] = datetime.strptime(created_at_str, '%Y-%m-%d %H:%M:%S')
+                else:
+                    exam['created_at'] = datetime.strptime(created_at_str, '%Y-%m-%d')
+            except ValueError:
+                exam['created_at'] = None
+        else:
+            exam['created_at'] = None
 
     return render_template('exams.html', exams=exams)
 
@@ -1226,62 +1267,31 @@ def half_yearly_results():
     
     conn.close()
     return render_template('half_yearly_detailed.html', grouped_results=grouped_results, subjects=SUBJECTS)
-    
-    import json
-    exam_classes = json.loads(exam['classes'])
-    exam_sections = json.loads(exam['sections'])
-    exam_subjects = json.loads(exam['subjects'])
-    exam_students = json.loads(exam['students']) if exam['students'] else None
-    
-    # Get results
-    results = []
-    if exam_students:
-        placeholders = ','.join('?' * len(exam_students))
-        cursor.execute(f'SELECT * FROM students WHERE admission_no IN ({placeholders}) ORDER BY name', exam_students)
-    else:
-        class_placeholders = ','.join('?' * len(exam_classes))
-        section_placeholders = ','.join('?' * len(exam_sections))
-        cursor.execute(f'''
-            SELECT * FROM students 
-            WHERE class_name IN ({class_placeholders}) AND section IN ({section_placeholders})
-            ORDER BY class_name, section, name
-        ''', exam_classes + exam_sections)
-    
+
+@app.route('/final-result')
+def final_result():
+    """Detailed Final Exam Marksheet"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM students ORDER BY class_name, section, roll_no')
     students = cursor.fetchall()
     
+    grouped_results = []
+    SUBJECTS = ['English', 'Hindi', 'Maths', 'Science', 'SST', 'Computer', 'French']
+    
     for student in students:
-        student_marks = {}
-        total_marks = 0
-        subjects_taken = 0
+        cursor.execute("SELECT subject, pt, ma, se, pf, written FROM marks WHERE student_id = ? AND exam_type = 'Final'", (student['admission_no'],))
+        marks_raw = cursor.fetchall()
+        student_marks = {row['subject']: dict(row) for row in marks_raw}
         
-        for subject in exam_subjects:
-            cursor.execute('SELECT written FROM marks WHERE student_id = ? AND subject = ? AND exam_type = ?',
-                         (student['admission_no'], subject, exam_name))
-            mark = cursor.fetchone()
-            if mark:
-                student_marks[subject] = mark[0]
-                total_marks += mark[0]
-                subjects_taken += 1
-            else:
-                student_marks[subject] = 0
-        
-        if subjects_taken > 0:
-            percentage = (total_marks / (subjects_taken * exam['max_marks'])) * 100
-            results.append({
-                'student': student,
-                'marks': student_marks,
-                'total': total_marks,
-                'percentage': round(percentage, 2),
-                'subjects_taken': subjects_taken
-            })
+        grouped_results.append({
+            'student': dict(student),
+            'marks': student_marks,
+            'subjects': SUBJECTS
+        })
     
     conn.close()
-    
-    return render_template('exam_results.html', 
-                         exam=exam, 
-                         results=results, 
-                         subjects=exam_subjects,
-                         exam_name=exam_name)
+    return render_template('final_result.html', grouped_results=grouped_results, subjects=SUBJECTS)
 
 # Error handlers
 @app.errorhandler(404)
